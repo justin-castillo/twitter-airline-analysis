@@ -9,7 +9,7 @@ dependencies:
   - scikit-learn
   - nltk
   - spacy
-  - tensorflow-cpu     # swap to pytorch if preferred
+  - tensorflow-cpu    
   - optuna
   - matplotlib
   - seaborn
@@ -18,5 +18,7 @@ dependencies:
   - black
   - ruff
   - pre-commit
+  - pytest
+  - pyarrow  
   - pip:
       - kaggle
