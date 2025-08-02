@@ -36,12 +36,7 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     """Apply text cleaning and return a tidy DataFrame."""
     df = df.copy()
     df["clean_text"] = df["text"].astype(str).apply(clean_text)
-    cols = [
-        "tweet_id",
-        "airline",
-        "airline_sentiment",
-        "clean_text",
-    ]
+    cols = ["tweet_id", "airline", "airline_sentiment", "clean_text", "negativereason"]
     return df[cols]
 
 
