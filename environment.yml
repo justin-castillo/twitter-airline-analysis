@@ -1,0 +1,22 @@
+name: twitter-sentiment-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - jupyterlab
+  - pandas
+  - scikit-learn
+  - nltk
+  - spacy
+  - tensorflow-cpu     # swap to pytorch if preferred
+  - optuna
+  - matplotlib
+  - seaborn
+  - fastapi
+  - uvicorn
+  - black
+  - ruff
+  - pre-commit
+  - pip:
+      - kaggle
