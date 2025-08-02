@@ -21,3 +21,6 @@ __pycache__/
 # Ignore processed artefacts
 data/processed/**
 data/raw/** 
+
+# EDA images
+reports/figs_eda/**
