@@ -1,0 +1,19 @@
+# Conda & virtualenv
+.env
+.conda
+*.conda
+*.egg-info/
+
+# VSCode settings
+.vscode/
+
+# OS cruft
+Thumbs.db
+.DS_Store
+
+# Jupyter notebooks checkpoints
+**/.ipynb_checkpoints
+
+# Python cache
+__pycache__/
+*.py[cod]
