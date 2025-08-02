@@ -20,5 +20,7 @@ dependencies:
   - pre-commit
   - pytest
   - pyarrow  
+  - joblib          # save / load fitted models
+  - yellowbrick     # quick visual diagnostics
   - pip:
       - kaggle
