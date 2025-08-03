@@ -3,42 +3,41 @@ channels:
   - conda-forge
 
 dependencies:
-  # ── core ────────────────────────────────────────────────
+  # ── core ───────────────────────────────────────────
   - python=3.11
   - pip
   - jupyterlab
   - pandas
   - scikit-learn
-  - numpy
-  - matplotlib
-  - seaborn
 
-  # ── NLP / modeling ──────────────────────────────────────
+  # ── NLP / classical modeling ───────────────────────
   - spacy
   - nltk
   - fastapi
   - uvicorn
-  - optuna
-  - evaluate>=0.4              # quick metrics
-  - yellowbrick                # visual diagnostics
+  - optuna                 # hyper‑parameter search
+  - evaluate>=0.4          # quick metrics
+  - yellowbrick            # visual diagnostics
 
-  # ── ML / deep learning ─────────────────────────────────
-  - pytorch::pytorch-cuda=11.7 
+  # ── ML / deep learning ─────────────────────────────
+  - pytorch::pytorch-cuda=11.7   # GPU build with CUDA 11.7
   - torchvision
   - torchaudio
-
   - transformers>=4.41
   - datasets>=2.19
   - accelerate
 
-  # ── lint / test / qa ────────────────────────────────────
+  # ── lint / test / QA ───────────────────────────────
   - black
   - ruff
   - pre-commit
   - pytest
-  - pytest-cov
+  - pytest-cov            # coverage reports
 
-  # ── utilities ──────────────────────────────────────────
-  - joblib                     # save / load sklearn models
+  # ── utilities ──────────────────────────────────────
+  - joblib                # save / load sklearn models
+  - shap                  # explainability
+
+  # Everything below can be installed from PyPI if Conda is missing it
   - pip:
-      - kaggle                 # if you download from Kaggle
+      - kaggle
