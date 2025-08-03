@@ -39,3 +39,4 @@ dependencies:
     - transformers
     - datasets
     - accelerate
+"  - shap"    
