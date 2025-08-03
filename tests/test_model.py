@@ -1,5 +1,9 @@
 from twitter_airline_analysis import model
 import pandas as pd
+from pathlib import Path
+import joblib
+
+MODEL_PATH = Path("models/logreg_tfidf.joblib")
 
 
 def _load_sample(n=500):
@@ -23,3 +27,17 @@ def test_pipeline_fits_and_scores():
     metrics = model.evaluate(pipe, X_v, y_v)
     # baseline F1 should be > 0.5 on this sample
     assert metrics["report"]["weighted avg"]["f1-score"] > 0.5
+
+
+def test_artifact_exists():
+    assert MODEL_PATH.exists(), "Baseline model artefact missing"
+
+
+def test_inference_shape():
+    model = joblib.load(MODEL_PATH)
+    sample = pd.Series(
+        ["Great service but delayed flight"],
+        name="clean_text",
+    )
+    pred = model.predict(sample)
+    assert pred.shape == (1,)
