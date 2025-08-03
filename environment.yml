@@ -1,41 +1,44 @@
 name: twitter-sentiment-env
 channels:
   - conda-forge
+
 dependencies:
+  # ── core ────────────────────────────────────────────────
   - python=3.11
   - pip
   - jupyterlab
   - pandas
   - scikit-learn
-  - evaluate>=0.4  
-  - nltk
-  - spacy
-  - tensorflow-cpu    
-  - optuna
+  - numpy
   - matplotlib
   - seaborn
+
+  # ── NLP / modeling ──────────────────────────────────────
+  - spacy
+  - nltk
   - fastapi
   - uvicorn
+  - optuna
+  - evaluate>=0.4              # quick metrics
+  - yellowbrick                # visual diagnostics
+
+  # ── ML / deep learning ─────────────────────────────────
+  - pytorch::pytorch-cuda=11.7 
+  - torchvision
+  - torchaudio
+
+  - transformers>=4.41
+  - datasets>=2.19
+  - accelerate
+
+  # ── lint / test / qa ────────────────────────────────────
   - black
   - ruff
   - pre-commit
   - pytest
-  - pyarrow  
-  - joblib          # save / load fitted models
-  - yellowbrick     # quick visual diagnostics
-  - pytorch
-  - torchvision
-  - torchaudio
-  - cudatoolkit=11.7    # match your system driver
-  - pip
-  - transformers>=4.41
-  - datasets>=2.19
-  - pytorch  
+  - pytest-cov
+
+  # ── utilities ──────────────────────────────────────────
+  - joblib                     # save / load sklearn models
   - pip:
-    - kaggle
-    - torch       # or the appropriate CPU/GPU build: pytorch==1.14.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-    - torchvision
-    - torchaudio
-    - transformers
-    - datasets
-    - accelerate
+      - kaggle                 # if you download from Kaggle
