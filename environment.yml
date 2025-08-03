@@ -26,14 +26,14 @@ dependencies:
   - pytorch
   - torchvision
   - torchaudio
-  - cudatoolkit=11.7    # match your system driver
+  - cudatoolkit=11.7   
   - pip
   - transformers>=4.41
   - datasets>=2.19
   - pytorch  
   - pip:
     - kaggle
-    - torch       # or the appropriate CPU/GPU build: pytorch==1.14.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+    - torch       
     - torchvision
     - torchaudio
     - transformers
