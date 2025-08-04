@@ -47,6 +47,35 @@ def save_parquet(df: pd.DataFrame, name: str = "tweets.parquet") -> Path:
     return out_path
 
 
+def load_prepared_data(*, force_rebuild: bool = False):
+    """
+    Return (X, y) ready for modelling.
+
+    Parameters
+    ----------
+    force_rebuild : bool, default=False
+        If True, always rebuild the processed parquet from raw CSV.
+
+    Notes
+    -----
+    • Looks for `tweets.parquet` in the processed folder.
+    • If missing or `force_rebuild=True`, runs the full preprocess pipeline.
+    """
+    parquet_path = PROCESSED_DIR / "tweets.parquet"
+
+    if force_rebuild or not parquet_path.exists():
+        df_raw = load_raw()
+        df_tidy = preprocess(df_raw)
+        parquet_path = save_parquet(df_tidy)
+
+    df = pd.read_parquet(parquet_path)
+
+    X = df["clean_text"]
+    y = df["airline_sentiment"]
+
+    return X, y
+
+
 if __name__ == "__main__":  # manual CLI
     df_raw = load_raw()
     df_tidy = preprocess(df_raw)
