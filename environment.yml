@@ -9,6 +9,8 @@ dependencies:
   - jupyterlab
   - pandas
   - scikit-learn
+  - optuna 
+  - sqlalchemy
 
   # ── NLP / classical modeling ───────────────────────
   - spacy
