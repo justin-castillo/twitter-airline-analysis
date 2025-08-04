@@ -1,0 +1,13 @@
+{
+  "model_name": "tweet_sentiment_distilbert",
+  "num_labels": 3,
+  "labels": [
+    "negative",
+    "neutral",
+    "positive"
+  ],
+  "metrics": {
+    "accuracy": 0.8401639344262295,
+    "macro_f1": 0.7980384320135547
+  }
+}
