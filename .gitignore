@@ -24,3 +24,17 @@ data/raw/**
 
 # EDA images
 reports/figs_eda/**
+
+# === data artifacts (untracked) ===
+data/processed/**
+data/raw/**
+
+# === large model checkpoints (untracked) ===
+models/distilbert_twitter/checkpoints/**
+# keep only final/: your trained “final” model
+models/distilbert_twitter/checkpoints/
+models/distilbert_twitter/checkpoints/*
+
+# optionally: ignore everything under reports/figs_04 and figs_eval if you regenerate them
+reports/figs_04/**
+reports/figs_eval/**
