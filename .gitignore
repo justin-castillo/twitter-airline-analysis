@@ -42,3 +42,7 @@ reports/figs_eval/**
 models/distilbert_twitter/final/*.safetensors
 
 "artifacts/*.joblib" 
+"artifacts/*.csv"            
+"artifacts/*.json"           
+"artifacts/*.db"             
+"models/**/final/*"          
