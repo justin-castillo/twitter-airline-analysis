@@ -1,4 +1,5 @@
 """FastAPI wrapper exposing /predict endpoint."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "logreg_tfidf.joblib"
-PIPE       = joblib.load(MODEL_PATH)
+PIPE = joblib.load(MODEL_PATH)
 
 
 class InferenceRequest(BaseModel):
