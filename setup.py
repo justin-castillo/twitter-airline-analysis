@@ -7,3 +7,9 @@ setup(
     packages=find_packages(where="src"),
     python_requires=">=3.9",
 )
+
+entry_points={
+    "console_scripts": [
+        "twitter-predict=src.predict:main",
+    ],
+},
