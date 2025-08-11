@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-08-04T17:24:54",
-  "val_auc_weighted": 0.9681689745764328,
-  "test_auc_weighted": 0.913418906259584,
-  "best_trial_id": 12,
-  "n_trials": 43
+  "timestamp": "2025-08-05T05:33:17",
+  "val_auc_weighted": 0.9035301466318725,
+  "test_auc_weighted": 0.9074088970986964,
+  "best_trial_id": 0.9056516645489069,
+  "n_trials": 22
 }
