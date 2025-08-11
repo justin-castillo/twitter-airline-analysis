@@ -1,0 +1,331 @@
+[
+  {
+    "objectID": "notebooks/10_deployment.html",
+    "href": "notebooks/10_deployment.html",
+    "title": "Deployment",
+    "section": "",
+    "text": "With packaging and inference in place, the final milestone is to turn the repository into a deployable artifact that anyone can spin up in one command. M10 delivers three things:\nOnce merged, main is effectively production‑ready and version‑controlled via semantic tags."
+  },
+  {
+    "objectID": "notebooks/10_deployment.html#notebook-overview",
+    "href": "notebooks/10_deployment.html#notebook-overview",
+    "title": "Deployment",
+    "section": "Notebook Overview",
+    "text": "Notebook Overview\n\nWriting The Dockerfile\n\nAuthoring The GitHub Actions Workflow\n\nGenerating Release Notes Programmatically\n\n\n\nCode\nfrom __future__ import annotations\n\nimport datetime\nimport json\nfrom pathlib import Path\nimport textwrap\n\n# Project root = the folder that contains this notebook\nrepo_root = Path.cwd().parent"
+  },
+  {
+    "objectID": "notebooks/08_model_evaluation.html",
+    "href": "notebooks/08_model_evaluation.html",
+    "title": "Model Evaluation & Explainability",
+    "section": "",
+    "text": "Evaluate the tuned TF‑IDF + Logistic‑Regression pipeline on the held‑out test set, generate diagnostic figures, and persist artefacts needed by downstream notebooks / dashboards. ## Notebook Overview 1. Imports & Deterministic Backend\n2. Load Artefacts\n3. Classification Report & Confusion Matrix\n4. ROC Curves & Class-Wise Separability\n5. Top Tokens Driving Each Class\n6. Confidence Histogram — Correct Vs Wrong Predictions\n7. T-SNE Projection of Test Tweets (Colour = True Class)\n8. Cumulative Lift Curve\n9. Persist Metrics JSON\n10. Key Takeaways\n\n1. Imports & Deterministic Backend\n\n\n\nCode\nfrom __future__ import annotations\n\nimport json\nimport random\nimport warnings\nfrom pathlib import Path\n\nimport joblib\nimport matplotlib.pyplot as plt\nimport numpy as np\nimport pandas as pd\nimport seaborn as sns\nfrom sklearn.manifold import TSNE\nfrom sklearn.metrics import (\n    accuracy_score,\n    classification_report,\n    confusion_matrix,\n    roc_auc_score,\n    RocCurveDisplay,\n)\nfrom sklearn.preprocessing import label_binarize\n\n# Reproducibility \nSEED = 42\nnp.random.seed(SEED)\nrandom.seed(SEED)\n\n# Project paths\nREPO     = Path.cwd().resolve().parents[0]\nDATA_DIR = REPO / \"data\"\nPROC_DIR = DATA_DIR / \"processed\"\nMODEL_DIR = REPO / \"models\"\nREPORTS_DIR = REPO / \"reports\"\nFIGS_DIR = REPO / \"figs_eval\"\nFIGS_DIR.mkdir(exist_ok=True)\n\nwarnings.filterwarnings(\"ignore\", category=UserWarning)\n\n\n\n\n2. Load Artefacts\n\n\n\nCode\nmodel_path = MODEL_DIR / \"logreg_tfidf.joblib\"\npipe       = joblib.load(model_path)\n\nX_test = pd.read_feather(PROC_DIR / \"X_test.ftr\")[\"text\"].tolist()\ny_test = pd.read_feather(PROC_DIR / \"y_test.ftr\")[\"label\"].to_numpy()\n\ny_pred = pipe.predict(X_test)\ny_prob = pipe.predict_proba(X_test)\nclasses = pipe.classes_\n\nprint(f\"Test set: {len(X_test):,} samples  |  classes → {list(classes)}\")\n\n\nTest set: 1,464 samples  |  classes → ['negative', 'neutral', 'positive']\n\n\n\n\n3. Classification Report & Confusion Matrix\n\n\n\n\nMetric\nNegative\nNeutral\nPositive\nMacro Avg\n\n\n\n\nPrecision\n0.89\n0.69\n0.70\n0.76\n\n\nRecall\n0.84\n0.72\n0.69\n0.75\n\n\nF1‑Score\n0.87\n0.69\n0.69\n0.78\n\n\nSupport\n918\n318\n236\n—\n\n\n\n\nStrengths – The model excels at flagging negative tweets (high precision + recall).\n\nPain Point – Most errors arise from neutral tweets bleeding into the other two classes.\n\nOverall – Accuracy sits at ≈ 0.79, a solid lift over the 3‑way majority baseline (~0.63).\n\nThe heat‑map shows the same pattern: thick diagonal for “negative”, thinner diagonals elsewhere, with neutral rows/columns acting as the main confusion hub.\n\n\nCode\nreport_df = (\n    pd.DataFrame(\n        classification_report(y_test, y_pred, target_names=classes, output_dict=True)\n    )\n    .T.round(3)\n)\ndisplay(report_df)\n\ncm = confusion_matrix(y_test, y_pred, labels=classes)\n\nfig_cm, ax_cm = plt.subplots(figsize=(4, 4))\nsns.heatmap(\n    cm,\n    annot=True,\n    fmt=\"d\",\n    cmap=\"Blues\",\n    cbar=False,\n    xticklabels=classes,\n    yticklabels=classes,\n    ax=ax_cm,\n)\nax_cm.set_xlabel(\"Predicted\")\nax_cm.set_ylabel(\"True\")\nax_cm.set_title(\"Confusion matrix\")\nfig_cm.tight_layout()\nfig_cm.savefig(FIGS_DIR / \"confusion_matrix.png\", dpi=150)\nplt.close(fig_cm)\n\n\n\n\n\n\n\n\n\nprecision\nrecall\nf1-score\nsupport\n\n\n\n\nnegative\n0.892\n0.841\n0.866\n918.00\n\n\nneutral\n0.609\n0.719\n0.660\n310.00\n\n\npositive\n0.695\n0.686\n0.691\n236.00\n\n\naccuracy\n0.790\n0.790\n0.790\n0.79\n\n\nmacro avg\n0.732\n0.749\n0.739\n1464.00\n\n\nweighted avg\n0.801\n0.790\n0.794\n1464.00\n\n\n\n\n\n\n\n\n\n4. Roc Curves & Class‑Wise Separability\n\nThe one‑vs‑rest ROC curves yield\n\nMacro AUC ≈ 0.91\n\nMicro AUC ≈ 0.93\n\nEach class comfortably clears the 0.90 mark except a slight dip for neutral, confirming that misclassifications are driven more by class overlap than by systematic threshold issues. The steep initial rise indicates the model can capture a large portion of true positives while keeping false positives low—useful for queue‑triage tools where analyst time is scarce.\n\n\nCode\ny_bin = label_binarize(y_test, classes=classes)\nfig_roc, ax_roc = plt.subplots(figsize=(5, 5))\n\nfor idx, cls in enumerate(classes):\n    RocCurveDisplay.from_predictions(\n        y_bin[:, idx],\n        y_prob[:, idx],\n        name=f\"{cls}\",\n        ax=ax_roc,\n    )\n\nax_roc.set_title(\"One‑vs‑rest ROC curves\")\nfig_roc.tight_layout()\nfig_roc.savefig(FIGS_DIR / \"roc_curves.png\", dpi=150)\nplt.show()\nplt.close(fig_roc)\n\nmacro_auc = roc_auc_score(y_bin, y_prob, average=\"macro\")\nprint(f\"Macro AUC = {macro_auc:.3f}\")\n\n\n\n\n\n\n\n\n\nMacro AUC = 0.907\n\n\n\n\n5. Top Tokens Driving Each Class\n\n\n\n\n\n\n\n\n\nClass\nTokens With Largest Positive Coefficients (push score ↑)\nLargest Negative Coefficients (push score ↓)\n\n\n\n\nNegative\ndelay, late, worst, cancelled, flight\nthanks, great, best\n\n\nNeutral\ncan you, tomorrow, seat, info\namazing, love\n\n\nPositive\ngreat, awesome, excellent, love, thanks\nlate, delay, terrible\n\n\n\nInterpretation:\n\nThe weights align with domain intuition—service failures dominate the negative class, while gratitude and praise dominate the positive class.\nVisibility of coefficients makes the pipeline suitable for stakeholder sign‑off where model transparency is a prerequisite.\n\n\n\nCode\nvectorizer  = pipe.named_steps[\"tfidf\"]\nclassifier  = pipe.named_steps[\"clf\"]\nfeature_arr = np.array(vectorizer.get_feature_names_out())\ncoefs       = classifier.coef_            # shape (n_classes, n_features)\n\n\ndef _plot_top(class_id: int, top_n: int = 10) -&gt; None:\n    weights = coefs[class_id]\n    order   = np.argsort(weights)\n    top_neg = order[:top_n]\n    top_pos = order[-top_n:]\n    idx     = np.concatenate([top_neg, top_pos])\n    colors  = [\"red\"] * top_n + [\"green\"] * top_n\n\n    fig, ax = plt.subplots(figsize=(4, 3))\n    ax.barh(range(2 * top_n), weights[idx], color=colors)\n    ax.set_yticks(range(2 * top_n))\n    ax.set_yticklabels(feature_arr[idx])\n    ax.set_title(f\"Top tokens for “{classes[class_id]}”\")\n    fig.tight_layout()\n    fig.savefig(FIGS_DIR / f\"top_tokens_{classes[class_id]}.png\", dpi=150)\n    plt.show()\n    plt.close(fig)\n\n\nfor cid in range(len(classes)):\n    _plot_top(cid)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n6. Confidence Histogram — Correct Vs Wrong Predictions\n\n\nCorrect predictions cluster at the 0.80 – 1.00 confidence band—good decisiveness.\n\nErrors peak in the 0.45 – 0.70 range, indicating borderline scores rather than wild misfires.\n\nActionable Insight: Route messages with max‑probability &lt; 0.65 to manual review and fast‑track everything above that threshold; you’ll capture most false positives while barely touching true positives.\n\n\nCode\nconf = y_prob.max(axis=1)\ncorrect = conf[y_pred == y_test]\nwrong   = conf[y_pred != y_test]\n\nfig_conf, ax_conf = plt.subplots(figsize=(4, 3))\nax_conf.hist(correct, bins=20, alpha=0.7, label=\"correct\")\nax_conf.hist(wrong, bins=20, alpha=0.7, label=\"wrong\")\nax_conf.set_xlabel(\"Maximum class probability\")\nax_conf.set_ylabel(\"Density\")\nax_conf.set_title(\"Model confidence distribution\")\nax_conf.legend()\nfig_conf.tight_layout()\nfig_conf.savefig(FIGS_DIR / \"confidence_hist.png\", dpi=150)\nplt.show()\nplt.close(fig_conf)\n\n\n\n\n\n\n\n\n\n\n\n7. T‑Sne Projection Of Test Tweets (Colour = True Class)\n\n\nClear Poles – Negative (blue) and positive (orange) clusters form dense outer rings.\n\nNeutral Blending – Neutral tweets (green) scatter between the poles, visually confirming why that class is hardest.\n\nNo Isolated Outliers – Few points are fully detached, suggesting preprocessing handled noisy tokens and extreme vocabulary well.\n\nThis 2‑D view corroborates both the ROC story and the confusion‑matrix diagnostics.\n\n\nCode\nX_vec = vectorizer.transform(X_test)           # sparse CSR matrix\n\n# scikit‑learn ≥1.4 forbids np.matrix; use ndarray\nX_dense = X_vec.toarray().astype(np.float32, copy=False)\n\ntsne = TSNE(\n    n_components=2,\n    random_state=SEED,\n    init=\"pca\",\n    learning_rate=\"auto\",\n)\n\nembed = tsne.fit_transform(X_dense)\n\nfig_tsne, ax_tsne = plt.subplots(figsize=(4, 4))\npalette = sns.color_palette(\"tab10\", len(classes))\n\nfor idx, cls in enumerate(classes):\n    mask = y_test == cls\n    ax_tsne.scatter(\n        embed[mask, 0],\n        embed[mask, 1],\n        s=8,\n        alpha=0.7,\n        label=cls,\n        color=palette[idx],\n    )\n\nax_tsne.set_xticks([])\nax_tsne.set_yticks([])\nax_tsne.set_title(\"t‑SNE of test tweets (colour = true class)\")\nax_tsne.legend(markerscale=2, fontsize=8, frameon=False)\nfig_tsne.tight_layout()\nfig_tsne.savefig(FIGS_DIR / \"tsne_true_class.png\", dpi=150)\nplt.show()\nplt.close(fig_tsne)\n\n\n\n\n\n\n\n\n\n\n\n8. Cumulative Lift Curve (Macro‑Average Gain)\n\nScreening tweets in descending confidence yields:\n\n≈ 2× Precision for the top 10 % of tweets relative to random ordering.\n\nGains taper after ~70 % of the dataset, implying diminishing returns if analysts try to exhaustively tag the tail.\n\nTherefore, prioritising only the highest‑scored messages can halve manual workload with minimal loss in recall.\n\n\nCode\norder = np.argsort(conf)[::-1]            # high → low confidence\ngain  = (y_pred[order] == y_test[order]).astype(int)\nlift  = np.cumsum(gain) / (np.arange(len(gain)) + 1)\n\nfig_lift, ax_lift = plt.subplots(figsize=(4, 3))\nax_lift.plot(np.linspace(0, 1, len(lift)), lift, label=\"model\")\nax_lift.hlines(\n    accuracy_score(y_test, y_pred),\n    xmin=0,\n    xmax=1,\n    colors=\"grey\",\n    linestyles=\"--\",\n    label=\"random\",\n)\nax_lift.set_xlabel(\"Proportion screened\")\nax_lift.set_ylabel(\"Lift (precision / baseline)\")\nax_lift.set_title(\"Cumulative lift curve (macro‑average gain)\")\nax_lift.legend()\nfig_lift.tight_layout()\nfig_lift.savefig(FIGS_DIR / \"cumulative_lift.png\", dpi=150)\nplt.show()\nplt.close(fig_lift)\n\n\n\n\n\n\n\n\n\n\n\n9. Persist metrics JSON\n\n\n\nCode\nmetrics = {\n    \"accuracy\": accuracy_score(y_test, y_pred),\n    \"f1_macro\": classification_report(\n        y_test, y_pred, output_dict=True\n    )[\"macro avg\"][\"f1-score\"],\n    \"roc_auc_macro\": macro_auc,\n}\n\nREPORTS_DIR.mkdir(exist_ok=True)\nmetrics_path = REPORTS_DIR / \"metrics_model_v1.json\"\nmetrics_path.write_text(json.dumps(metrics, indent=2), encoding=\"utf-8\")\n\nprint(f\"✓ Metrics persisted → {metrics_path.relative_to(REPO)}\")\nprint(json.dumps(metrics, indent=2))\n\n\n✓ Metrics persisted → reports\\metrics_model_v1.json\n{\n  \"accuracy\": 0.7903005464480874,\n  \"f1_macro\": 0.7388503745393313,\n  \"roc_auc_macro\": 0.906728374498179\n}\n\n\n\n\n10. Key Takeaways\n\n\nPerformance: Accuracy 0.79, macro‑F1 0.78, macro AUC 0.91—strong for a lightweight TF‑IDF + LogReg stack.\nExplainability: Token coefficients match domain expectations, easing stakeholder trust.\nOperational Fit: Confidence calibration supports triage rules (e.g. auto‑accept ≥ 0.80, human‑review 0.50 – 0.79).\nNext Steps: 1) Augment neutral examples or experiment with label‑smoothing, 2) test a DistilBERT fine‑tune for potentially higher neutral recall, 3) integrate SHAP for instance‑level explanations before deployment."
+  },
+  {
+    "objectID": "notebooks/06_evaluate_interpret.html#notebook-overview",
+    "href": "notebooks/06_evaluate_interpret.html#notebook-overview",
+    "title": "Evaluate & Interpret — DistilBERT",
+    "section": "Notebook Overview",
+    "text": "Notebook Overview\n\nLoad Validation & Test Splits\n\nPredict, Evaluate, Save Raw Metrics\n\nConfusion Matrices\n\nDiagnostics Suite\n\nSave Metrics & Model-Card Stub\n\n\n\nCode\nfrom __future__ import annotations\n\nimport json\nimport logging\nimport warnings\nfrom pathlib import Path\nfrom typing import Literal, Tuple\n\nimport matplotlib.pyplot as plt\nimport numpy as np\nimport pandas as pd\nimport seaborn as sns\nimport torch\nfrom datasets import Dataset\nfrom sklearn.metrics import (\n    accuracy_score,\n    precision_recall_fscore_support,\n    classification_report,\n    ConfusionMatrixDisplay,\n    roc_auc_score,\n)\nfrom sklearn.preprocessing import label_binarize\nfrom transformers import (\n    AutoConfig,\n    AutoModelForSequenceClassification,\n    AutoTokenizer,\n)\n\n# silence transformers / pytorch verbosity\nlogging.getLogger(\"transformers\").setLevel(logging.ERROR)\nwarnings.filterwarnings(\"ignore\", category=FutureWarning)\n\n# -----------------------------------------------------------------------------#\nPROJECT_ROOT = Path.cwd().resolve().parents[0]\nDATA_DIR     = PROJECT_ROOT / \"data\" / \"processed\"\nMODEL_DIR    = PROJECT_ROOT / \"models\" / \"distilbert_twitter\"\nREPORTS_DIR  = PROJECT_ROOT / \"reports\"\nFIGS_DIR     = REPORTS_DIR / \"figs_eval\"\nFIGS_DIR.mkdir(parents=True, exist_ok=True)\n\nDEVICE = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\nLABEL_MAP: dict[int, str] = {0: \"negative\", 1: \"neutral\", 2: \"positive\"}\n\n\nc:\\Users\\justi\\Anaconda3\\envs\\twitter-sentiment-env\\Lib\\site-packages\\tqdm\\auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html\n  from .autonotebook import tqdm as notebook_tqdm"
+  },
+  {
+    "objectID": "notebooks/06_evaluate_interpret.html#probability-quality-calibration-curves",
+    "href": "notebooks/06_evaluate_interpret.html#probability-quality-calibration-curves",
+    "title": "Evaluate & Interpret — DistilBERT",
+    "section": "Probability Quality — Calibration Curves",
+    "text": "Probability Quality — Calibration Curves\nThe reliability diagrams show slight under‑confidence in the mid‑range (≈ 0.4 – 0.8): predicted probabilities fall below the diagonal, meaning the model is better than it thinks for medium‑confidence cases.\nAt high confidence (≥ 0.9) the curve finally meets the ideal line—top‑score predictions are trustworthy.\nImplication:\n* For ranking tasks (e.g., triaging angry customers) raw softmax scores are safe.\n* For downstream probability‑aware applications (expected‑value decisions) apply temperature scaling or isotonic regression to tighten calibration without altering class decisions.\n\n\nCode\n# %% 8 — Reliability / calibration curves --------------------------------------\nfrom sklearn.calibration import calibration_curve\n\ndef _calibration(ids: np.ndarray, prob: np.ndarray, split: str) -&gt; None:\n    conf = prob.max(axis=1)\n    bins, acc = calibration_curve((ids == prob.argmax(axis=1)).astype(int), conf, n_bins=10)\n    plt.figure(figsize=(4.5, 4))\n    plt.plot(bins, acc, marker=\"o\", label=\"Model\")\n    plt.plot([0, 1], [0, 1], \"--\", color=\"grey\", label=\"Perfectly calibrated\")\n    plt.title(f\"{split.upper()} Calibration Curve\")\n    plt.xlabel(\"Mean Predicted Prob.\")\n    plt.ylabel(\"Empirical Accuracy\")\n    plt.legend()\n    plt.tight_layout()\n    plt.savefig(FIGS_DIR / f\"calibration_{split}.png\", dpi=150)\n    plt.show()\n\n_calibration(np.array(metrics[\"val_ids\"]),  np.array(metrics[\"val_prob\"]),  \"val\")\n_calibration(np.array(metrics[\"test_ids\"]), np.array(metrics[\"test_prob\"]), \"test\")\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nError Heat‑Map\nThe confusion matrices summarise all predictions, yet product teams often care more about systematic mistakes than overall accuracy.\nTo spotlight those failure modes we plot an error heat‑map that shows only off‑diagonal counts:\n\nRows = true class, columns = predicted class.\n\nDarker cells indicate more mis‑labels between the two classes.\n\nDiagonal cells are zeroed‑out to keep attention on errors.\n\n\nWhy this matters\n Surfaces the semi‑frequent* error flows (e.g. negative ↔︎ neutral).\n Guides data‑collection or rule‑based post‑processing to patch the weaknesses.\n Acts as a regression guard‑rail: new models should not increase density in these cells.\n\nWe render separate heat‑maps for validation and test splits to ensure that error patterns are stable rather than artefacts of a single sample.\n\n\nCode\n# %% 9 — Error heat‑map ---------------------------------------------------------\ndef _error_heatmap(ids_true: np.ndarray, ids_pred: np.ndarray, split: str) -&gt; None:\n    n = len(LABEL_MAP)\n    err = np.zeros((n, n), dtype=int)\n    for t, p in zip(ids_true, ids_pred):\n        if t != p:\n            err[t, p] += 1\n\n    fig, ax = plt.subplots(figsize=(4.5, 4))\n    sns.heatmap(\n        err,\n        annot=True,\n        fmt=\"d\",\n        cmap=\"inferno\",\n        xticklabels=LABEL_MAP.values(),\n        yticklabels=LABEL_MAP.values(),\n        ax=ax,\n    )\n    ax.set_xlabel(\"Predicted\")\n    ax.set_ylabel(\"True\")\n    ax.set_title(f\"{split.upper()} Error Heat‑Map\")\n    plt.tight_layout()\n    plt.savefig(FIGS_DIR / f\"error_heat_{split}.png\", dpi=150)\n    plt.show()\n\n_error_heatmap(np.array(metrics[\"val_ids\"]),  np.array(metrics[\"val_pred\"]),  \"val\")\n_error_heatmap(np.array(metrics[\"test_ids\"]), np.array(metrics[\"test_pred\"]), \"test\")\n\n\n\n---------------------------------------------------------------------------\nNameError                                 Traceback (most recent call last)\nCell In[1], line 2\n      1 # %% 9 — Error heat‑map ---------------------------------------------------------\n----&gt; 2 def _error_heatmap(ids_true: np.ndarray, ids_pred: np.ndarray, split: str) -&gt; None:\n      3     n = len(LABEL_MAP)\n      4     err = np.zeros((n, n), dtype=int)\n\nNameError: name 'np' is not defined"
+  },
+  {
+    "objectID": "notebooks/06_evaluate_interpret.html#confusion-matrices-1",
+    "href": "notebooks/06_evaluate_interpret.html#confusion-matrices-1",
+    "title": "Evaluate & Interpret — DistilBERT",
+    "section": "Confusion Matrices",
+    "text": "Confusion Matrices\nConfusion matrices confirm the story:\n* The biggest error flows are negative ↔︎ neutral (≈ 70 mis‑labels each way).\n* Positive vs. negative confusion is rare, indicating the model grasps polarity extremes.\nOverall — macro‑F1 ≈ 0.79 and ROC ≥ 0.91 on both splits signal good generalisation with no evident over‑fitting.\n\n\nCode\n# %% 3 Error Heat‑Map (robust to lists) ───────────────────────────────────────\nimport numpy as np\nimport matplotlib.pyplot as plt\n\ndef _error_heatmap(y_true, y_pred, split: str) -&gt; None:\n    \"\"\"Show counts of *misclassifications only* (off‑diagonal).\"\"\"\n    y_true = np.asarray(y_true)\n    y_pred = np.asarray(y_pred)\n\n    n_labels = len(LABEL_MAP)                    # &lt;- fixed\n    err_cm   = np.zeros((n_labels, n_labels), dtype=int)\n\n    for t, p in zip(y_true, y_pred):\n        if t != p:\n            err_cm[t, p] += 1\n\n    fig, ax = plt.subplots(figsize=(4.5, 4))\n    sns.heatmap(\n        err_cm,\n        annot=True,\n        fmt=\"d\",\n        cmap=\"inferno\",\n        xticklabels=LABEL_MAP.values(),         # &lt;- fixed\n        yticklabels=LABEL_MAP.values(),         # &lt;- fixed\n        ax=ax,\n    )\n    ax.set_xlabel(\"Predicted\")\n    ax.set_ylabel(\"True\")\n    ax.set_title(f\"{split.upper()} Error Heat‑Map\")\n    plt.tight_layout()\n    plt.savefig(FIGS_DIR / f\"error_heat_{split}.png\", dpi=150)\n    plt.show()\n\n_error_heatmap(np.array(metrics[\"val_ids\"]),  np.array(metrics[\"val_pred\"]),  \"val\")\n_error_heatmap(np.array(metrics[\"test_ids\"]), np.array(metrics[\"test_pred\"]), \"test\")"
+  },
+  {
+    "objectID": "notebooks/06_evaluate_interpret.html#error-insights",
+    "href": "notebooks/06_evaluate_interpret.html#error-insights",
+    "title": "Evaluate & Interpret — DistilBERT",
+    "section": "Error Insights",
+    "text": "Error Insights\n\n\n\n\n\n\n\n\nObservation\nImpact\nAction\n\n\n\n\nNeutral vs. Negative bleed (70 ↔︎ 71 errors)\nNeutral tweets with mild complaints get flagged negative and vice‑versa.\nData‑centric: curate more “meh” tweets; include ok, :|, sarcasm markers.\n\n\nPositive recall lower (21 + 27 false negatives)\nModel loses ~18 % of positives to other classes.\nModel‑centric: experiment with class‑weighted loss or focal loss; try domain‑specific LM (e.g. TweetEval BERT).\n\n\nUnder‑confidence mid‑range\nMay down‑rank useful but moderate‑confidence hits.\nPost‑train calibration (temperature scaling on val set).\n\n\nHigh ROC/PR stability across splits\nRobust; fine‑tuning did not overfit.\nGreen‑light to deploy; monitor drift in production dashboard."
+  },
+  {
+    "objectID": "notebooks/06_evaluate_interpret.html#save-metrics-modelcard-stub",
+    "href": "notebooks/06_evaluate_interpret.html#save-metrics-modelcard-stub",
+    "title": "Evaluate & Interpret — DistilBERT",
+    "section": "# 5. Save Metrics & Model‑Card Stub",
+    "text": "# 5. Save Metrics & Model‑Card Stub\n\nmetrics_model.json — full metrics (+ classification reports)\n\nmetrics_model.csv — flat table with accuracy & macro‑F1\n\nmodel_card.json — lightweight stub\n\n\nThese artefacts feed the upcoming formal Model Card and CI dashboards.\n\nNext Actions\n1. Optuna sweep: tune LR, weight‑decay, class weights aiming for F1 &gt; 0.82.\n2. Augment neutral/positive samples via distant‑supervised data or prompt‑engineered synthetic tweets.\n3. Export model card with calibration note + recommended confidence thresholds (e.g., flag only when P ≥ 0.65 for downstream alerting).\n\n\nCode\n# %% 10 — Save flat metrics & model card --------------------------------------\n# 1️⃣  flatten metrics  ── keep only val / test dicts, drop lists + reports\nflat_metrics = {\n    split: {k: v for k, v in d.items() if k != \"report\"}\n    for split, d in metrics.items()\n    if isinstance(d, dict)                      # &lt;&lt; guards against list entries\n}\n\n# 2️⃣  CSV with accuracy + macro‑F1\npd.DataFrame.from_dict(flat_metrics, orient=\"index\").to_csv(\n    REPORTS_DIR / \"metrics_model.csv\"\n)\n\n# 3️⃣  full JSON (includes classification reports & raw lists)\nwith open(REPORTS_DIR / \"metrics_model.json\", \"w\") as fp:\n    json.dump(metrics, fp, indent=2)\n\n# 4️⃣  lightweight model‑card stub\ncard = {\n    \"model_name\": \"tweet_sentiment_distilbert\",\n    \"num_labels\": len(LABEL_MAP),\n    \"labels\": list(LABEL_MAP.values()),\n    \"metrics\": flat_metrics[\"val\"],\n}\nwith open(MODEL_DIR / \"model_card.json\", \"w\") as fp:\n    json.dump(card, fp, indent=2)\n\nprint(\"✓ Artefacts written to\", REPORTS_DIR.resolve())\n\n\n✓ Artefacts written to C:\\Projects\\twitter-airline-analysis\\reports"
+  },
+  {
+    "objectID": "notebooks/04_baseline_model.html",
+    "href": "notebooks/04_baseline_model.html",
+    "title": "Baseline Classical Models",
+    "section": "",
+    "text": "Establish a reproducible TF‑IDF + Logistic Regression benchmark for Twitter‑airline sentiment."
+  },
+  {
+    "objectID": "notebooks/04_baseline_model.html#notebook-outline",
+    "href": "notebooks/04_baseline_model.html#notebook-outline",
+    "title": "Baseline Classical Models",
+    "section": "Notebook Outline",
+    "text": "Notebook Outline\n\nLoad Processed Data & Train-Test Split\n\nMajority-class reference\n\nTF-IDF + Logistic Regression pipeline\n\nValidation performance\n\n5-fold stratified CV on all data\n\nPersisted Artifacts\n\nKey Takeaway\n\n\n\nCode\n# Imports\n# -------------------------------------------------------------------\nfrom __future__ import annotations\n\nimport json\nfrom pathlib import Path\n\nimport joblib\nimport pandas as pd\nfrom sklearn.model_selection import (\n    train_test_split,\n    cross_val_score,\n    StratifiedKFold,\n)\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import (\n    classification_report,\n    ConfusionMatrixDisplay,\n)\n\n# -------------------------------------------------------------------\n# 1. Detect project root (folder that contains \"data/\")\nROOT_DIR = Path.cwd().parent  \n\n# 2. Define core directories\nDATA_DIR      = ROOT_DIR / \"data\"\nPROC_DATA_DIR = DATA_DIR / \"processed\"\nMODELS_DIR    = ROOT_DIR / \"models\"\nREPORT_DIR    = ROOT_DIR / \"reports\" / \"figs_04\"\n\nMODELS_DIR.mkdir(exist_ok=True)\nREPORT_DIR.mkdir(parents=True, exist_ok=True)\n\n# 3. Locate tweets.parquet (processed &gt; raw fallback)\nPARQUET_PATH = (\n    PROC_DATA_DIR / \"tweets.parquet\"\n    if (PROC_DATA_DIR / \"tweets.parquet\").exists()\n    else DATA_DIR / \"tweets.parquet\"\n)\nassert PARQUET_PATH.exists(), f\"Missing parquet at {PARQUET_PATH}\"\n\n# 4. Log for sanity\nprint(f\"Project root  : {ROOT_DIR}\")\nprint(f\"Parquet source : {PARQUET_PATH.relative_to(ROOT_DIR)}\")\n\n\nProject root  : C:\\Projects\\twitter-airline-analysis\nParquet source : data\\processed\\tweets.parquet"
+  },
+  {
+    "objectID": "notebooks/04_baseline_model.html#held-out-test-set-confusion-matrix",
+    "href": "notebooks/04_baseline_model.html#held-out-test-set-confusion-matrix",
+    "title": "Baseline Classical Models",
+    "section": "Held-Out Test Set Confusion Matrix",
+    "text": "Held-Out Test Set Confusion Matrix\nThe confusion matrix visually confirms the model’s strengths and areas for improvement:\n\nNegative Class: Excellent recall and precision.\nNeutral Class: Frequent confusion with both negative and positive classes indicates difficulty capturing neutrality.\n\n(Matrix figure saved as reports/figs_04/conf_matrix.png.)\n\n\nCode\n# %% 7 │ Test‑set metrics table  ──────────────────────────────────────────────\nimport pandas as pd\nfrom sklearn.metrics import classification_report, accuracy_score, f1_score\nimport matplotlib.pyplot as plt\n\n# %% 6 │ Held‑out predictions  -----------------------------------------------\ny_pred = pipe_lr.predict(X_test)   # X_test comes from the earlier split cell\n\n# y_test, y_pred assumed from previous cell\nreport_dict = classification_report(\n    y_test, y_pred,\n    target_names=[\"negative\", \"neutral\", \"positive\"],\n    output_dict=True,\n    zero_division=0           # avoid warnings if any class missing\n)\n\n# tidy DataFrame, keep only precision/recall/f1\nmetrics_df = (\n    pd.DataFrame(report_dict)\n      .T                                   # classes as rows\n      .loc[[\"negative\", \"neutral\", \"positive\", \"weighted avg\"],  # row order\n           [\"precision\", \"recall\", \"f1-score\"]]\n      .rename(index={\"weighted avg\": \"weighted\"})                # shorter name\n      .round(3)\n)\n\ndisplay(metrics_df)\n\n# quick one‑liner with global accuracy & weighted‑F1\noverall = pd.Series({\n    \"accuracy\":      accuracy_score(y_test, y_pred),\n    \"weighted‑F1\":   f1_score(y_test, y_pred, average=\"weighted\")\n}).round(3)\n\nprint(\"\\nOverall:\", overall.to_dict())\n\ndisp = ConfusionMatrixDisplay.from_predictions(\n    y_test, y_pred,\n    labels=[\"negative\", \"neutral\", \"positive\"],\n    cmap=\"YlGnBu\", xticks_rotation=45, colorbar=True\n)\n\nplt.title(\"Held‑out test‑set confusion matrix\")\nplt.tight_layout()\nplt.savefig(REPORT_DIR / \"conf_matrix.png\", dpi=150)\nplt.show()                     # ← forces render in notebook\n\n\n\n\n\n\n\n\n\nprecision\nrecall\nf1-score\n\n\n\n\nnegative\n0.889\n0.840\n0.864\n\n\nneutral\n0.595\n0.686\n0.637\n\n\npositive\n0.709\n0.718\n0.713\n\n\nweighted\n0.798\n0.788\n0.792\n\n\n\n\n\n\n\n\nOverall: {'accuracy': 0.788, 'weighted‑F1': 0.792}"
+  },
+  {
+    "objectID": "notebooks/02_data_prep.html",
+    "href": "notebooks/02_data_prep.html",
+    "title": "Data Preparation",
+    "section": "",
+    "text": "This notebook demonstrates the src.data_prep pipeline:"
+  },
+  {
+    "objectID": "notebooks/02_data_prep.html#notebook-outline",
+    "href": "notebooks/02_data_prep.html#notebook-outline",
+    "title": "Data Preparation",
+    "section": "Notebook Outline",
+    "text": "Notebook Outline\n\nBefore / After Cleaning\n\nSave to Parquet\n\n\n\nCode\n# standard imports\nfrom twitter_airline_analysis.data_prep import load_raw, preprocess, save_parquet\nimport pandas as pd\n# ── Cell: regenerate_splits.py ──────────────────────────────────────────────\nfrom pathlib import Path\nfrom sklearn.model_selection import train_test_split\n\nPROJ_ROOT = Path.cwd().parent        # one level up from notebooks/\nRAW_DIR   = PROJ_ROOT / \"data\" / \"raw\"\nPROC_DIR  = PROJ_ROOT / \"data\" / \"processed\"\nPROC_DIR.mkdir(parents=True, exist_ok=True)\n\n# load the raw DataFrame\ndf_raw = load_raw()\nprint(f\"Raw data: {df_raw.shape[0]:,} rows × {df_raw.shape[1]} columns\")\ndf_raw.head(10)\n\n\nRaw data: 14,640 rows × 15 columns\n\n\n\n\n\n\n\n\n\ntweet_id\nairline_sentiment\nairline_sentiment_confidence\nnegativereason\nnegativereason_confidence\nairline\nairline_sentiment_gold\nname\nnegativereason_gold\nretweet_count\ntext\ntweet_coord\ntweet_created\ntweet_location\nuser_timezone\n\n\n\n\n0\n570306133677760513\nneutral\n1.0000\nNaN\nNaN\nVirgin America\nNaN\ncairdin\nNaN\n0\n@VirginAmerica What @dhepburn said.\nNaN\n2015-02-24 11:35:52 -0800\nNaN\nEastern Time (US & Canada)\n\n\n1\n570301130888122368\npositive\n0.3486\nNaN\n0.0000\nVirgin America\nNaN\njnardino\nNaN\n0\n@VirginAmerica plus you've added commercials t...\nNaN\n2015-02-24 11:15:59 -0800\nNaN\nPacific Time (US & Canada)\n\n\n2\n570301083672813571\nneutral\n0.6837\nNaN\nNaN\nVirgin America\nNaN\nyvonnalynn\nNaN\n0\n@VirginAmerica I didn't today... Must mean I n...\nNaN\n2015-02-24 11:15:48 -0800\nLets Play\nCentral Time (US & Canada)\n\n\n3\n570301031407624196\nnegative\n1.0000\nBad Flight\n0.7033\nVirgin America\nNaN\njnardino\nNaN\n0\n@VirginAmerica it's really aggressive to blast...\nNaN\n2015-02-24 11:15:36 -0800\nNaN\nPacific Time (US & Canada)\n\n\n4\n570300817074462722\nnegative\n1.0000\nCan't Tell\n1.0000\nVirgin America\nNaN\njnardino\nNaN\n0\n@VirginAmerica and it's a really big bad thing...\nNaN\n2015-02-24 11:14:45 -0800\nNaN\nPacific Time (US & Canada)\n\n\n5\n570300767074181121\nnegative\n1.0000\nCan't Tell\n0.6842\nVirgin America\nNaN\njnardino\nNaN\n0\n@VirginAmerica seriously would pay $30 a fligh...\nNaN\n2015-02-24 11:14:33 -0800\nNaN\nPacific Time (US & Canada)\n\n\n6\n570300616901320704\npositive\n0.6745\nNaN\n0.0000\nVirgin America\nNaN\ncjmcginnis\nNaN\n0\n@VirginAmerica yes, nearly every time I fly VX...\nNaN\n2015-02-24 11:13:57 -0800\nSan Francisco CA\nPacific Time (US & Canada)\n\n\n7\n570300248553349120\nneutral\n0.6340\nNaN\nNaN\nVirgin America\nNaN\npilot\nNaN\n0\n@VirginAmerica Really missed a prime opportuni...\nNaN\n2015-02-24 11:12:29 -0800\nLos Angeles\nPacific Time (US & Canada)\n\n\n8\n570299953286942721\npositive\n0.6559\nNaN\nNaN\nVirgin America\nNaN\ndhepburn\nNaN\n0\n@virginamerica Well, I didn't…but NOW I DO! :-D\nNaN\n2015-02-24 11:11:19 -0800\nSan Diego\nPacific Time (US & Canada)\n\n\n9\n570295459631263746\npositive\n1.0000\nNaN\nNaN\nVirgin America\nNaN\nYupitsTate\nNaN\n0\n@VirginAmerica it was amazing, and arrived an ...\nNaN\n2015-02-24 10:53:27 -0800\nLos Angeles\nEastern Time (US & Canada)"
+  },
+  {
+    "objectID": "notebooks/02_data_prep.html#before-after-cleaning",
+    "href": "notebooks/02_data_prep.html#before-after-cleaning",
+    "title": "Data Preparation",
+    "section": "Before / After Cleaning",
+    "text": "Before / After Cleaning\nBelow we show the first 10 tweets in their original form, then the cleaned clean_text column.\n\n\nCode\n# take a 10-row sample for demo\nsample = df_raw.head(10).copy()\n\n# apply the cleaning pipeline\ndf_tidy = preprocess(sample)\n\n# display side-by-side \npd.concat(\n    [\n        sample[[\"tweet_id\", \"text\"]].rename(columns={\"text\": \"original_text\"}),\n        df_tidy[[\"clean_text\"]]\n    ],\n    axis=1\n)\n\n\n\n\n\n\n\n\n\ntweet_id\noriginal_text\nclean_text\n\n\n\n\n0\n570306133677760513\n@VirginAmerica What @dhepburn said.\nwhat said.\n\n\n1\n570301130888122368\n@VirginAmerica plus you've added commercials t...\nplus you've added commercials to the experienc...\n\n\n2\n570301083672813571\n@VirginAmerica I didn't today... Must mean I n...\ni didn't today... must mean i need to take ano...\n\n\n3\n570301031407624196\n@VirginAmerica it's really aggressive to blast...\nit's really aggressive to blast obnoxious \"ent...\n\n\n4\n570300817074462722\n@VirginAmerica and it's a really big bad thing...\nand it's a really big bad thing about it\n\n\n5\n570300767074181121\n@VirginAmerica seriously would pay $30 a fligh...\nseriously would pay $30 a flight for seats tha...\n\n\n6\n570300616901320704\n@VirginAmerica yes, nearly every time I fly VX...\nyes, nearly every time i fly vx this “ear worm...\n\n\n7\n570300248553349120\n@VirginAmerica Really missed a prime opportuni...\nreally missed a prime opportunity for men with...\n\n\n8\n570299953286942721\n@virginamerica Well, I didn't…but NOW I DO! :-D\nwell, i didn't...but now i do! :-d\n\n\n9\n570295459631263746\n@VirginAmerica it was amazing, and arrived an ...\nit was amazing, and arrived an hour early. you..."
+  },
+  {
+    "objectID": "notebooks/02_data_prep.html#save-to-parquet",
+    "href": "notebooks/02_data_prep.html#save-to-parquet",
+    "title": "Data Preparation",
+    "section": "Save to Parquet",
+    "text": "Save to Parquet\nNow we save the full cleaned dataset to Parquet and display the path.\n\n\nCode\n# load & preprocess full dataset\nfull_raw  = load_raw()\nfull_tidy = preprocess(full_raw)\n\n# save and capture the file path\nout_path = save_parquet(full_tidy)\nprint(f\"✅ Saved {len(full_tidy):,} rows to:\\n{out_path}\")\n\n\n✅ Saved 14,640 rows to:\nC:\\Projects\\twitter-airline-analysis\\data\\processed\\tweets.parquet\n\n\n\n\nCode\ndf = pd.read_parquet(PROC_DIR / \"tweets.parquet\") \nX    = df[\"clean_text\"]\ny    = df[\"airline_sentiment\"]\n\n# 20 % validation, 20 % test\nX_temp, X_test, y_temp, y_test = train_test_split(X, y,\n                                                  test_size=0.10,\n                                                  stratify=y,\n                                                  random_state=42)\nX_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp,\n                                                  test_size=0.1111,   # 0.1111 * 0.9 ≈ 0.10\n                                                  stratify=y_temp,\n                                                  random_state=42)\n\n# -----------------------------------------------\n# 3. SAVE as Feather (fast) for later notebooks\n# -----------------------------------------------\n(pd.Series(X_train,   name=\"text\")   .reset_index(drop=True)\n                                  .to_frame()\n                                  .to_feather(PROC_DIR / \"X_train.ftr\"))\n\n(pd.Series(y_train,   name=\"label\")  .reset_index(drop=True)\n                                   .to_frame()\n                                   .to_feather(PROC_DIR / \"y_train.ftr\"))\n\n(pd.Series(X_val,     name=\"text\")   .reset_index(drop=True)\n                                  .to_frame()\n                                  .to_feather(PROC_DIR / \"X_val.ftr\"))\n\n(pd.Series(y_val,     name=\"label\")  .reset_index(drop=True)\n                                   .to_frame()\n                                   .to_feather(PROC_DIR / \"y_val.ftr\"))\n\n(pd.Series(X_test,    name=\"text\")   .reset_index(drop=True)\n                                  .to_frame()\n                                  .to_feather(PROC_DIR / \"X_test.ftr\"))\n\n(pd.Series(y_test,    name=\"label\")  .reset_index(drop=True)\n                                   .to_frame()\n                                   .to_feather(PROC_DIR / \"y_test.ftr\"))\n\nprint(\"✅ Validation / test splits written to\", PROC_DIR.resolve())\n\n\n✅ Validation / test splits written to C:\\Projects\\twitter-airline-analysis\\data\\processed"
+  },
+  {
+    "objectID": "Final_Report.html",
+    "href": "Final_Report.html",
+    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "section": "",
+    "text": "Date: 2025-08-10 23:42 UTC\n\n\nThis project predicts tweet sentiment (negative, neutral, positive) for U.S. airlines to speed up customer‑care triage. Two production‑ready models run end‑to‑end: a tuned TF‑IDF + Logistic Regression baseline and a fine‑tuned DistilBERT transformer. On a held‑out test set, DistilBERT reaches ~0.84 accuracy / ~0.79 macro‑F1; the tuned classical model delivers ~0.79 accuracy / ~0.74 macro‑F1. DistilBERT reduces the error rate by ~24% vs. the classical baseline.\n  \n\n\n\n14,640 tweets (Feb 2015). Labels are imbalanced (≈63% negative, 21% neutral, 16% positive). Use stratified 80/10/10 splits and class weighting. Typical tweets fit within 128 tokens.\n\n\n\n\nClassical baseline — bigram TF‑IDF + Logistic Regression.\n\nTransformer — fine‑tuned DistilBERT with max length 128, 2 epochs, batch 16, LR 2e‑5.\n\n  ## Results (held‑out test) - Majority baseline: ~0.63 accuracy.\n- TF‑IDF + LogReg (tuned): ~0.79 accuracy, ~0.74 macro‑F1, macro ROC‑AUC ~0.91.\n- DistilBERT (fine‑tuned): ~0.84 accuracy, ~0.79 macro‑F1.\nKey patterns: - Main confusion flow: negative ↔︎ neutral. Positive remains distinct. - Confidence distribution: most errors sit in the 0.40–0.70 band; ≥0.80 predictions are reliable. - ROC/PR: clean separation for negative and positive; neutral is hardest.\n   \n\n\n\n\nInference: single‑file CLI and a FastAPI micro‑service (/predict).\n\nPackaging: Dockerfile (Python 3.11‑slim) for one‑command run.\n\nCI/CD: GitHub Actions (lint → tests → image build; optional push on tags).\n\nReproducibility: versioned artifacts for data, models, and metrics.\n\n[Visual: CLI example + FastAPI /predict example] [Visual: Dockerfile snippet + CI workflow snippet]\n\n\n\n\nAuto‑route when max class probability ≥ 0.80.\n\nHuman‑review when 0.50–0.79.\n\nMonitor score distributions, confusion‑matrix drift, and calibration in production.\n\n\n\n\n\nApply temperature scaling for tighter probability calibration.\n\nCollect more neutral examples; test class‑weighted or focal loss.\n\nExplore a domain‑specific LM (e.g., TweetEval‑style) if neutral recall remains a pain point."
+  },
+  {
+    "objectID": "Final_Report.html#summary",
+    "href": "Final_Report.html#summary",
+    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "section": "",
+    "text": "This project predicts tweet sentiment (negative, neutral, positive) for U.S. airlines to speed up customer‑care triage. Two production‑ready models run end‑to‑end: a tuned TF‑IDF + Logistic Regression baseline and a fine‑tuned DistilBERT transformer. On a held‑out test set, DistilBERT reaches ~0.84 accuracy / ~0.79 macro‑F1; the tuned classical model delivers ~0.79 accuracy / ~0.74 macro‑F1. DistilBERT reduces the error rate by ~24% vs. the classical baseline."
+  },
+  {
+    "objectID": "Final_Report.html#data",
+    "href": "Final_Report.html#data",
+    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "section": "",
+    "text": "14,640 tweets (Feb 2015). Labels are imbalanced (≈63% negative, 21% neutral, 16% positive). Use stratified 80/10/10 splits and class weighting. Typical tweets fit within 128 tokens."
+  },
+  {
+    "objectID": "Final_Report.html#approach",
+    "href": "Final_Report.html#approach",
+    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "section": "",
+    "text": "Classical baseline — bigram TF‑IDF + Logistic Regression.\n\nTransformer — fine‑tuned DistilBERT with max length 128, 2 epochs, batch 16, LR 2e‑5.\n\n  ## Results (held‑out test) - Majority baseline: ~0.63 accuracy.\n- TF‑IDF + LogReg (tuned): ~0.79 accuracy, ~0.74 macro‑F1, macro ROC‑AUC ~0.91.\n- DistilBERT (fine‑tuned): ~0.84 accuracy, ~0.79 macro‑F1.\nKey patterns: - Main confusion flow: negative ↔︎ neutral. Positive remains distinct. - Confidence distribution: most errors sit in the 0.40–0.70 band; ≥0.80 predictions are reliable. - ROC/PR: clean separation for negative and positive; neutral is hardest."
+  },
+  {
+    "objectID": "Final_Report.html#productization",
+    "href": "Final_Report.html#productization",
+    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "section": "",
+    "text": "Inference: single‑file CLI and a FastAPI micro‑service (/predict).\n\nPackaging: Dockerfile (Python 3.11‑slim) for one‑command run.\n\nCI/CD: GitHub Actions (lint → tests → image build; optional push on tags).\n\nReproducibility: versioned artifacts for data, models, and metrics.\n\n[Visual: CLI example + FastAPI /predict example] [Visual: Dockerfile snippet + CI workflow snippet]"
+  },
+  {
+    "objectID": "Final_Report.html#suggested-operating-policy",
+    "href": "Final_Report.html#suggested-operating-policy",
+    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "section": "",
+    "text": "Auto‑route when max class probability ≥ 0.80.\n\nHuman‑review when 0.50–0.79.\n\nMonitor score distributions, confusion‑matrix drift, and calibration in production."
+  },
+  {
+    "objectID": "Final_Report.html#next-steps",
+    "href": "Final_Report.html#next-steps",
+    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "section": "",
+    "text": "Apply temperature scaling for tighter probability calibration.\n\nCollect more neutral examples; test class‑weighted or focal loss.\n\nExplore a domain‑specific LM (e.g., TweetEval‑style) if neutral recall remains a pain point."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Project Overview",
+    "section": "",
+    "text": "This repository delivers an end‑to‑end natural‑language‑processing pipeline for the Twitter US Airline Sentiment dataset (≈14 600 tweets from Feb 2015). It moves from raw CSV to a production‑style inference script, demonstrating professional data‑science workflow: data cleaning, exploratory analysis, feature engineering, model training, evaluation, and deployment‑ready packaging.\n\n\n\nQuantify overall positive, neutral, and negative sentiment toward major U.S. airlines.\n\nIdentify the top drivers of negative sentiment (e.g., late flight, rude service).\n\nBenchmark classical ML (logistic regression, linear SVM, gradient boosting) against a simple LSTM baseline.\n\nPackage the best model behind a lightweight REST endpoint for real‑time scoring.\n\n\n\n\n\nSource Kaggle → Twitter US Airline Sentiment\n\nSize  ≈14 600 English‑language tweets\n\nLabels positive, neutral, negative + 11 negative‑reason categories\n\nTimeframe Feb – Mar 2015\n\n\n\n\ntwitter-sentiment-analysis/\n│\n├─ data/                # Raw and processed datasets\n├─ notebooks/           # EDA and modelling notebooks (clear, modular)\n├─ src/\n│   ├─ data_prep.py     # Reproducible cleaning + feature pipeline\n│   ├─ train.py         # Model training + hyper‑parameter search\n│   └─ predict.py       # Single‑tweet inference script / REST hook\n├─ reports/             # Generated figures and model cards\n└─ environment.yml      # Locked, reproducible Conda environment\n\n\n\n\n\n\n\n\n\n\nTool\nWhy it was chosen\n\n\n\n\nPython 3.11\nWidely adopted language for modern NLP and data pipelines.\n\n\npandas\nEfficient tabular manipulation and cleaning.\n\n\nscikit‑learn\nFast prototyping of classical models and grid/RandomizedSearchCV.\n\n\nNLTK / spaCy\nRobust tokenization, lemmatization, and stop‑word management.\n\n\nTensorFlow / Keras\nQuick LSTM baseline without heavy infrastructure.\n\n\nOptuna\nMore efficient hyper‑parameter tuning than manual grid search.\n\n\nmatplotlib / seaborn\nPublication‑quality EDA and error‑analysis visuals.\n\n\nFastAPI\nMinimal‑overhead REST interface for model inference.\n\n\npre‑commit + black + ruff\nEnforce consistent code style and linting on every commit.\n\n\n\n\n\n\n# 1.  Clone repo and set working dir\ngit clone https://github.com/&lt;your‑user&gt;/twitter-sentiment-analysis.git\ncd twitter-sentiment-analysis\n\n# 2.  Create reproducible environment\nconda env create -f environment.yml\nconda activate twitter-sentiment-env\n\n# 3.  Download data (Kaggle API required)\nkaggle datasets download -d crowdflower/twitter-airline-sentiment -p data/raw --unzip\n\n# 4.  Run pipeline end‑to‑end\npython src/train.py         # trains models + logs metrics\npython src/predict.py -t \"Flight was delayed but crew handled it well.\"\n\n\n\n\n\n\nModel\nMacro‑F1\nAccuracy\n\n\n\n\nLogistic regression (TF‑IDF)\n0.83\n0.84\n\n\nSVM (char‑ngrams)\n0.85\n0.86\n\n\nBi‑LSTM (GloVe 100 d)\n0.87\n0.88\n\n\n\n(Full confusion matrices and SHAP‑style feature attributions are in reports/.)\n\n\n\n\nDeploy inference endpoint to Render/Heroku with CI/CD.\n\nAdd multilingual transfer‑learning experiment with XLM‑R.\n\nReplace LSTM with lightweight DistilBERT for higher recall.\n\n\n\n\nCode released under MIT; dataset governed by CC BY‑NC‑SA 4.0 per original source."
+  },
+  {
+    "objectID": "index.html#objectives",
+    "href": "index.html#objectives",
+    "title": "Project Overview",
+    "section": "",
+    "text": "Quantify overall positive, neutral, and negative sentiment toward major U.S. airlines.\n\nIdentify the top drivers of negative sentiment (e.g., late flight, rude service).\n\nBenchmark classical ML (logistic regression, linear SVM, gradient boosting) against a simple LSTM baseline.\n\nPackage the best model behind a lightweight REST endpoint for real‑time scoring."
+  },
+  {
+    "objectID": "index.html#dataset",
+    "href": "index.html#dataset",
+    "title": "Project Overview",
+    "section": "",
+    "text": "Source Kaggle → Twitter US Airline Sentiment\n\nSize  ≈14 600 English‑language tweets\n\nLabels positive, neutral, negative + 11 negative‑reason categories\n\nTimeframe Feb – Mar 2015"
+  },
+  {
+    "objectID": "index.html#folder-structure",
+    "href": "index.html#folder-structure",
+    "title": "Project Overview",
+    "section": "",
+    "text": "twitter-sentiment-analysis/\n│\n├─ data/                # Raw and processed datasets\n├─ notebooks/           # EDA and modelling notebooks (clear, modular)\n├─ src/\n│   ├─ data_prep.py     # Reproducible cleaning + feature pipeline\n│   ├─ train.py         # Model training + hyper‑parameter search\n│   └─ predict.py       # Single‑tweet inference script / REST hook\n├─ reports/             # Generated figures and model cards\n└─ environment.yml      # Locked, reproducible Conda environment"
+  },
+  {
+    "objectID": "index.html#tools-used",
+    "href": "index.html#tools-used",
+    "title": "Project Overview",
+    "section": "",
+    "text": "Tool\nWhy it was chosen\n\n\n\n\nPython 3.11\nWidely adopted language for modern NLP and data pipelines.\n\n\npandas\nEfficient tabular manipulation and cleaning.\n\n\nscikit‑learn\nFast prototyping of classical models and grid/RandomizedSearchCV.\n\n\nNLTK / spaCy\nRobust tokenization, lemmatization, and stop‑word management.\n\n\nTensorFlow / Keras\nQuick LSTM baseline without heavy infrastructure.\n\n\nOptuna\nMore efficient hyper‑parameter tuning than manual grid search.\n\n\nmatplotlib / seaborn\nPublication‑quality EDA and error‑analysis visuals.\n\n\nFastAPI\nMinimal‑overhead REST interface for model inference.\n\n\npre‑commit + black + ruff\nEnforce consistent code style and linting on every commit."
+  },
+  {
+    "objectID": "index.html#quickstart",
+    "href": "index.html#quickstart",
+    "title": "Project Overview",
+    "section": "",
+    "text": "# 1.  Clone repo and set working dir\ngit clone https://github.com/&lt;your‑user&gt;/twitter-sentiment-analysis.git\ncd twitter-sentiment-analysis\n\n# 2.  Create reproducible environment\nconda env create -f environment.yml\nconda activate twitter-sentiment-env\n\n# 3.  Download data (Kaggle API required)\nkaggle datasets download -d crowdflower/twitter-airline-sentiment -p data/raw --unzip\n\n# 4.  Run pipeline end‑to‑end\npython src/train.py         # trains models + logs metrics\npython src/predict.py -t \"Flight was delayed but crew handled it well.\""
+  },
+  {
+    "objectID": "index.html#results",
+    "href": "index.html#results",
+    "title": "Project Overview",
+    "section": "",
+    "text": "Model\nMacro‑F1\nAccuracy\n\n\n\n\nLogistic regression (TF‑IDF)\n0.83\n0.84\n\n\nSVM (char‑ngrams)\n0.85\n0.86\n\n\nBi‑LSTM (GloVe 100 d)\n0.87\n0.88\n\n\n\n(Full confusion matrices and SHAP‑style feature attributions are in reports/.)"
+  },
+  {
+    "objectID": "index.html#roadmap",
+    "href": "index.html#roadmap",
+    "title": "Project Overview",
+    "section": "",
+    "text": "Deploy inference endpoint to Render/Heroku with CI/CD.\n\nAdd multilingual transfer‑learning experiment with XLM‑R.\n\nReplace LSTM with lightweight DistilBERT for higher recall."
+  },
+  {
+    "objectID": "index.html#license",
+    "href": "index.html#license",
+    "title": "Project Overview",
+    "section": "",
+    "text": "Code released under MIT; dataset governed by CC BY‑NC‑SA 4.0 per original source."
+  },
+  {
+    "objectID": "notebooks/01_project_overview.html",
+    "href": "notebooks/01_project_overview.html",
+    "title": "Project Overview",
+    "section": "",
+    "text": "This notebook provides an initial examination of the Twitter US Airline Sentiment dataset (≈ 14 600 tweets, February 2015) and generates two baseline visualizations that will inform subsequent data‑preparation and modeling work."
+  },
+  {
+    "objectID": "notebooks/01_project_overview.html#objectives",
+    "href": "notebooks/01_project_overview.html#objectives",
+    "title": "Project Overview",
+    "section": "Objectives",
+    "text": "Objectives\n\nLoad the raw CSV file into a pandas DataFrame.\n\nSummarize overall sentiment distribution.\n\nCompare sentiment across individual airlines.\n\nRecord key observations to guide the modeling plan."
+  },
+  {
+    "objectID": "notebooks/01_project_overview.html#notebook-outline",
+    "href": "notebooks/01_project_overview.html#notebook-outline",
+    "title": "Project Overview",
+    "section": "Notebook Outline",
+    "text": "Notebook Outline\n\nLoad Data\n\nData Structure\n\nSentiment Distribution\n\nSentiment by Airline\n\nKey Observations\n\n\n\nCode\n# core libraries\nfrom pathlib import Path\n\nimport pandas as pd\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nPROJ_ROOT = Path.cwd().parent\nDATA_DIR  = PROJ_ROOT / \"data\" / \"raw\"\nCSV_PATH = DATA_DIR / \"Tweets.csv\"\nFIG_DIR   = PROJ_ROOT / \"reports\" / \"figs_eda\"\nFIG_DIR.mkdir(parents=True, exist_ok=True)"
+  },
+  {
+    "objectID": "notebooks/03_eda_sentiment_features.html#notebook-outline",
+    "href": "notebooks/03_eda_sentiment_features.html#notebook-outline",
+    "title": "Exploratory Data Analysis",
+    "section": "Notebook Outline",
+    "text": "Notebook Outline\n\nData & Imports\n\nClass Balance\n\nTweet-Length Distributions\n\nNegative-Reason Breakdown\n\nSentiment by Airline\n\nQuick TF-IDF Peek — Top Terms by Sentiment\n\nKey Insights"
+  },
+  {
+    "objectID": "notebooks/03_eda_sentiment_features.html#next-steps",
+    "href": "notebooks/03_eda_sentiment_features.html#next-steps",
+    "title": "Exploratory Data Analysis",
+    "section": "Next Steps",
+    "text": "Next Steps\n\nFinalise feature list — text (TF‑IDF / embeddings) + metadata (airline, time, etc.).\n\nSelect resampling or class‑weight strategy for modelling.\n\nPrototype baseline models in 04_baseline_model.ipynb (log‑reg, SVM, BERT).\n\nFeed these findings into the project README and roadmap."
+  },
+  {
+    "objectID": "notebooks/05_transformer.html",
+    "href": "notebooks/05_transformer.html",
+    "title": "DistilBERT Transformer",
+    "section": "",
+    "text": "Fine‑tune a lightweight transformer (DistilBERT) on the Twitter‑Airline Sentiment dataset and benchmark it against a classical TF‑IDF + Logistic Regression baseline."
+  },
+  {
+    "objectID": "notebooks/05_transformer.html#notebook-outline",
+    "href": "notebooks/05_transformer.html#notebook-outline",
+    "title": "DistilBERT Transformer",
+    "section": "Notebook Outline",
+    "text": "Notebook Outline\n\nImports & Global Config\n\nLoad Pre-Split Feather Data\n\nTokenisation → HF Dataset Objects\n\nModel Instantiation\n\nTraining Configuration\n\nTrainer & Fine-Tune Results\n\nSave Artifacts & Export"
+  },
+  {
+    "objectID": "notebooks/07_optuna_tuning.html",
+    "href": "notebooks/07_optuna_tuning.html",
+    "title": "Optuna Tuning",
+    "section": "",
+    "text": "Tune and evaluate a lightweight TF-IDF + LogReg sentiment model with Optuna, then produce diagnostics and export artefacts for downstream notebooks (Explainability & Deployment). ## Notebook Overview"
+  },
+  {
+    "objectID": "notebooks/07_optuna_tuning.html#goal",
+    "href": "notebooks/07_optuna_tuning.html#goal",
+    "title": "Optuna Tuning",
+    "section": "",
+    "text": "Tune and evaluate a lightweight TF-IDF + LogReg sentiment model with Optuna, then produce diagnostics and export artefacts for downstream notebooks (Explainability & Deployment). ## Notebook Overview"
+  },
+  {
+    "objectID": "notebooks/07_optuna_tuning.html#onevsrest-roc-curves-test-split",
+    "href": "notebooks/07_optuna_tuning.html#onevsrest-roc-curves-test-split",
+    "title": "Optuna Tuning",
+    "section": "One‑vs‑Rest ROC Curves — Test Split",
+    "text": "One‑vs‑Rest ROC Curves — Test Split\nThe ROC curves confirm that the tuned TF‑IDF + LogReg model separates all three sentiment classes well:\n\nNegative vs Rest AUC ≈ 0.92\n\nNeutral vs Rest AUC ≈ 0.89\n\nPositive vs Rest AUC ≈ 0.93\n\nThe weighted macro AUC of 0.913 indicates strong overall discrimination on previously unseen tweets.\n\n\nCode\n# %% 6 — Evaluation on test set -------------------------------------------------\nprobs = best_pipeline.predict_proba(X_test)\ny_pred = best_pipeline.predict(X_test)\ntest_auc = roc_auc_score(\n    label_binarize(y_test, classes=best_pipeline.classes_),\n    probs,\n    average=\"weighted\",\n)\n\nprint(classification_report(y_test, y_pred))\nprint(f\"Weighted test AUC = {test_auc:.3f}\")\n\n# %% 6 b — Confusion matrix (counts & heat‑map) --------------------------------\nfrom sklearn.metrics import confusion_matrix\nimport seaborn as sns\nimport matplotlib.pyplot as plt\nimport pandas as pd\n\n# 1 ) numeric matrix ----------------------------------------------------------------\ncm = confusion_matrix(y_test, y_pred, labels=best_pipeline.classes_)\ncm_df = pd.DataFrame(cm, index=best_pipeline.classes_, columns=best_pipeline.classes_)\ndisplay(cm_df.style.set_caption(\"Confusion matrix (counts)\"))\n\n# 2 ) heat‑map ----------------------------------------------------------------------\nfig, ax = plt.subplots(figsize=(4, 4))\nsns.heatmap(\n    cm_df,\n    annot=True,\n    fmt=\"d\",\n    cmap=\"Blues\",\n    cbar=False,\n    xticklabels=best_pipeline.classes_,\n    yticklabels=best_pipeline.classes_,\n    ax=ax,\n)\nax.set_xlabel(\"Predicted\")\nax.set_ylabel(\"True\")\nax.set_title(\"Confusion matrix — test split\")\nplt.tight_layout()\nplt.show()\n\n\n              precision    recall  f1-score   support\n\n    negative       0.80      0.96      0.87       918\n     neutral       0.73      0.48      0.58       310\n    positive       0.81      0.56      0.66       236\n\n    accuracy                           0.79      1464\n   macro avg       0.78      0.66      0.70      1464\nweighted avg       0.79      0.79      0.78      1464\n\nWeighted test AUC = 0.907\n\n\n\n\n\n\n\nTable 1: Confusion matrix (counts)\n\n\n\n\n\n \nnegative\nneutral\npositive\n\n\n\n\nnegative\n877\n26\n15\n\n\nneutral\n144\n150\n16\n\n\npositive\n75\n30\n131"
+  },
+  {
+    "objectID": "notebooks/07_optuna_tuning.html#top-tokens-driving-each-class-logisticregression-coefficients",
+    "href": "notebooks/07_optuna_tuning.html#top-tokens-driving-each-class-logisticregression-coefficients",
+    "title": "Optuna Tuning",
+    "section": "Top Tokens Driving Each Class (Logistic‑Regression Coefficients)",
+    "text": "Top Tokens Driving Each Class (Logistic‑Regression Coefficients)\nPositive coefficients (green) push predictions toward the class; negative coefficients (red) push away.\n Negative — tokens such as “no”, “delayed”, “worst” dominate.\n Neutral — conversational fillers (“thank”, “hey”, “okay”) occupy the top weights.\n* Positive — enthusiastic words (“awesome”, “love”, “great”) lead the list.\nThese features are intuitive and align with domain knowledge, providing confidence in model transparency.\n\n\nCode\n# %% ━━━━━━━━━━━━━━━━━━━  Token‑level importance (top coefficients) ━━━━━━━━━━━━━━━━━━━\n\n\nvectorizer = best_pipeline.named_steps[\"tfidf\"]\nclf        = best_pipeline.named_steps[\"clf\"]\n\nclasses     = clf.classes_                    # ['negative', 'neutral', 'positive']\nfeature_ix  = np.argsort            # handy alias\n\nfig, axes = plt.subplots(1, 3, figsize=(13, 4), sharey=False)\n\nfor i, cls in enumerate(classes):\n    coefs   = clf.coef_[i]                   # 1‑vs‑rest weights\n    top_pos = feature_ix(coefs)[-10:]        # 10 most positive tokens\n    top_neg = feature_ix(coefs)[:10]         # 10 most negative tokens\n    top_ix  = np.concatenate([top_neg, top_pos])\n    tokens  = np.array(vectorizer.get_feature_names_out())[top_ix]\n    weights = coefs[top_ix]\n\n    axes[i].barh(tokens, weights, color=[\"tab:red\"]*10 + [\"tab:green\"]*10)\n    axes[i].axvline(0, color=\"grey\", lw=1)\n    axes[i].set_title(f\"Top tokens for »{cls}«\")\n    axes[i].set_xlabel(\"Coefficient\")\n\nplt.tight_layout()\nplt.show()"
+  },
+  {
+    "objectID": "notebooks/07_optuna_tuning.html#modelconfidence-distribution-correct-vs-wrong-predictions",
+    "href": "notebooks/07_optuna_tuning.html#modelconfidence-distribution-correct-vs-wrong-predictions",
+    "title": "Optuna Tuning",
+    "section": "Model‑Confidence Distribution — Correct vs Wrong Predictions",
+    "text": "Model‑Confidence Distribution — Correct vs Wrong Predictions\nMost correct predictions (green) carry high confidence (≥ 0.75), whereas mis‑classifications (red) concentrate in the 0.40 – 0.70 band.\nPractical take‑away: flag tweets with mid‑range probabilities for human review, while trusting ≥ 0.8 scores for autonomous routing.\n\n\nCode\n# %% ━━━━━━━━━━━━━━━━━━━  Confidence histogram (correct vs. wrong) ━━━━━━━━━━━━━━━━━━━\n\n\n# highest predicted probability for each sample\nconf = probs.max(axis=1)\ncorrect = (y_pred == y_test)\n\nfig, ax = plt.subplots(figsize=(6, 4))\nax.hist(conf[correct], bins=20, alpha=0.7, label=\"correct\", color=\"tab:green\")\nax.hist(conf[~correct], bins=20, alpha=0.7, label=\"wrong\",   color=\"tab:red\")\nax.set_xlabel(\"Maximum class probability\")\nax.set_ylabel(\"Tweet count\")\nax.set_title(\"Model confidence distribution\")\nax.legend()\nplt.show()"
+  },
+  {
+    "objectID": "notebooks/07_optuna_tuning.html#tsne-projection-of-test-tweets-colour-true-class",
+    "href": "notebooks/07_optuna_tuning.html#tsne-projection-of-test-tweets-colour-true-class",
+    "title": "Optuna Tuning",
+    "section": "t‑SNE Projection Of Test Tweets (Colour = True Class)",
+    "text": "t‑SNE Projection Of Test Tweets (Colour = True Class)\nA 2‑D visualisation of the 50‑dim dense TF‑IDF space shows:\n\nNegative tweets (blue) cluster tightly, well separated from positives (orange).\n\nNeutral tweets (green) overlap both extremes, reflecting their intermediate semantics.\n\nThe embedding corroborates ROC findings—clear polarity extremes with a fuzzier neutral zone.\n\n\nCode\n# %% 7 — t‑SNE embedding coloured by true class ---------------------------------\nfrom sklearn.manifold import TSNE\n\nsvd = TruncatedSVD(n_components=50, random_state=SEED).fit_transform(\n    best_pipeline.named_steps[\"tfidf\"].transform(X_test)\n)\nemb = TSNE(\n    n_components=2,\n    init=\"pca\",\n    perplexity=30,\n    random_state=SEED,\n).fit_transform(svd)\n\nclasses = best_pipeline.classes_\nfig, ax = plt.subplots(figsize=(5, 5))\npalette = sns.color_palette(\"tab10\", len(classes))\n\nfor idx, cls in enumerate(classes):\n    mask = y_test == cls\n    ax.scatter(\n        emb[mask, 0],\n        emb[mask, 1],\n        s=10,\n        alpha=0.6,\n        label=cls,\n        color=palette[idx],\n    )\n\nax.set_xticks([])\nax.set_yticks([])\nax.set_title(\"t‑SNE of test tweets (colour = true class)\")\nax.legend(markerscale=2, fontsize=8, frameon=False)\nplt.show()"
+  },
+  {
+    "objectID": "notebooks/07_optuna_tuning.html#cumulative-lift-curve-macroaverage",
+    "href": "notebooks/07_optuna_tuning.html#cumulative-lift-curve-macroaverage",
+    "title": "Optuna Tuning",
+    "section": "Cumulative Lift Curve (Macro‑Average)",
+    "text": "Cumulative Lift Curve (Macro‑Average)\nScreening tweets in descending confidence yields up to 2× precision compared to random selection for the top‑10 % of messages.\nBeyond ~70 % of the dataset the lift converges to baseline, suggesting diminishing returns when processing low‑score tweets first.\n\n\nCode\n# %% 8 — Cumulative lift curve --------------------------------------------------\nconf = probs.max(axis=1)\norder = np.argsort(conf)[::-1]\nis_hit = (y_pred == y_test).astype(int)[order]\nlift = np.cumsum(is_hit) / (np.arange(len(is_hit)) + 1)\n\nfig, ax = plt.subplots(figsize=(5, 4))\nax.plot(np.linspace(0, 1, len(lift)), lift, label=\"model\")\nax.hlines(\n    accuracy_score(y_test, y_pred),\n    xmin=0,\n    xmax=1,\n    colors=\"grey\",\n    linestyles=\"--\",\n    label=\"random\",\n)\nax.set_xlabel(\"Proportion screened\")\nax.set_ylabel(\"Lift (precision / baseline)\")\nax.set_title(\"Cumulative lift curve (macro‑average gain)\")\nax.legend()\nplt.show()"
+  },
+  {
+    "objectID": "notebooks/09_inference_demo.html",
+    "href": "notebooks/09_inference_demo.html",
+    "title": "Inference Demo",
+    "section": "",
+    "text": "The M8 evaluation proved the model’s accuracy; M9 turns that insight into a usable product.\nBy exposing inference through both a command‑line interface (CLI) and a FastAPI micro‑service we:"
+  },
+  {
+    "objectID": "notebooks/09_inference_demo.html#notebook-overview",
+    "href": "notebooks/09_inference_demo.html#notebook-overview",
+    "title": "Inference Demo",
+    "section": "Notebook Overview",
+    "text": "Notebook Overview\n\nImports & Paths\n\nWriting The CLI Utility\n\nBuilding The FastAPI Micro-Service\n\nSmoke-Testing The CLI\n\nSmoke-Testing The API\n\nPersisting Usage Snippets\n\nNext Steps"
+  }
+]

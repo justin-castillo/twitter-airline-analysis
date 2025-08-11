@@ -1,6 +1,4 @@
-# Twitter sentiment analysis
-
-## Project overview
+# Project overview
 This repository delivers an end‑to‑end natural‑language‑processing pipeline for the **Twitter US Airline Sentiment** dataset (≈14 600 tweets from Feb 2015). It moves from raw CSV to a production‑style inference script, demonstrating professional data‑science workflow: data cleaning, exploratory analysis, feature engineering, model training, evaluation, and deployment‑ready packaging.
 
 ## Objectives

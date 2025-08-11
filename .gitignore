@@ -20,7 +20,7 @@ __pycache__/
 
 # Ignore processed artefacts
 data/processed/**
-data/raw/** 
+data/raw/**
 
 # EDA images
 reports/figs_eda/**
@@ -41,8 +41,10 @@ reports/figs_eval/**
 # ignore big model blobs (handled by Git LFS)
 models/distilbert_twitter/final/*.safetensors
 
-"artifacts/*.joblib" 
-"artifacts/*.csv"            
-"artifacts/*.json"           
-"artifacts/*.db"             
-"models/**/final/*"          
+"artifacts/*.joblib"
+"artifacts/*.csv"
+"artifacts/*.json"
+"artifacts/*.db"
+"models/**/final/*"
+
+/.quarto/

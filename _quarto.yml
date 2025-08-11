@@ -1,0 +1,50 @@
+project:
+  type: website
+  output-dir: docs
+  render:
+    - index.qmd
+    - Final_Report.md         
+    - notebooks/*.ipynb      
+
+website:
+  title: "Twitter Airline Sentiment"
+  site-url: "https://justin-castillo.github.io/twitter-airline-analysis/"   # optional
+  repo-url: "https://github.com/justin-castillo/twitter-airline-analysis"
+  repo-actions: [source, issue]
+  navbar:
+    left:
+      - text: Home
+        href: index.qmd
+      - text: Notebooks
+        menu:
+          - text: EDA & Sentiment Features
+            href: notebooks/03_eda_sentiment_features.ipynb
+          - text: Baseline Model
+            href: notebooks/04_baseline_model.ipynb
+          - text: Transformer
+            href: notebooks/05_transformer.ipynb
+          - text: Evaluate & Interpret
+            href: notebooks/06_evaluate_interpret.ipynb
+          - text: Optuna Tuning
+            href: notebooks/07_optuna_tuning.ipynb
+          - text: Model Evaluation
+            href: notebooks/08_model_evaluation.ipynb
+          - text: Inference Demo
+            href: notebooks/09_inference_demo.ipynb
+      - text: Final Report
+        href: Final_Report.md  
+    right:
+      - text: "Live Demo"
+        href: "https://twitter-airline-analysis.onrender.com"
+        target: _blank
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: true
+    self-contained: true       
+
+execute:
+  freeze: auto
+
