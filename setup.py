@@ -1,3 +1,6 @@
+
+# setup.py
+```python
 from setuptools import setup, find_packages
 
 setup(
@@ -6,10 +9,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     python_requires=">=3.9",
-)
-
-entry_points = (
-    {
+    entry_points={
         "console_scripts": [
             "twitter-predict=src.predict:main",
         ],
