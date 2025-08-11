@@ -1,4 +1,3 @@
-# Project overview
 This repository delivers an end‑to‑end natural‑language‑processing pipeline for the **Twitter US Airline Sentiment** dataset (≈14 600 tweets from Feb 2015). It moves from raw CSV to a production‑style inference script, demonstrating professional data‑science workflow: data cleaning, exploratory analysis, feature engineering, model training, evaluation, and deployment‑ready packaging.
 
 ## Objectives
@@ -72,5 +71,3 @@ python src/predict.py -t "Flight was delayed but crew handled it well."
 - [ ] Add multilingual transfer‑learning experiment with XLM‑R.  
 - [ ] Replace LSTM with lightweight DistilBERT for higher recall.  
 
-## License
-Code released under MIT; dataset governed by **CC BY‑NC‑SA 4.0** per original source.

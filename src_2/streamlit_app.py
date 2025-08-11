@@ -1,5 +1,5 @@
 """
-Streamlit UI (human-friendly).
+Streamlit UI 
 Run: streamlit run src_2/streamlit_app.py
 """
 

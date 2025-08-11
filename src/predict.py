@@ -8,7 +8,7 @@ from pathlib import Path
 import joblib
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "logreg_tfidf.joblib"
-_PIPE = joblib.load(MODEL_PATH)  # eager load; model ≈1 MB
+_PIPE = joblib.load(MODEL_PATH)
 
 
 def predict(text: str) -> str:
@@ -16,7 +16,7 @@ def predict(text: str) -> str:
     return _PIPE.predict([text])[0]
 
 
-def main() -> None:  # pragma: no cover
+def main() -> None:
     parser = argparse.ArgumentParser(description="Predict text sentiment.")
     parser.add_argument("text", nargs="+", help="Text to classify.")
     args = parser.parse_args()

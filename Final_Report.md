@@ -15,6 +15,7 @@ This project predicts tweet sentiment (negative, neutral, positive) for U.S. air
 
 ![alt text](reports/figs_final_report/09_coefficient_trio.png)
 ![alt text](reports/figs_final_report/10_tnse_2.png)
+
 ## Results (held‑out test)
 - **Majority baseline:** ~0.63 accuracy.  
 - **TF‑IDF + LogReg (tuned):** ~0.79 accuracy, ~0.74 macro‑F1, macro ROC‑AUC ~0.91.  

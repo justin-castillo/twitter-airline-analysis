@@ -14,7 +14,6 @@ if str(PARENT) not in sys.path:
 from typing import List, Optional
 
 try:
-    # Python 3.8+ has typing.Literal
     from typing import Literal
 except ImportError:  # pragma: no cover
     from typing_extensions import Literal  # type: ignore

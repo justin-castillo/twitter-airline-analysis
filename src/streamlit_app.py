@@ -1,4 +1,3 @@
-# Streamlit ≥1.35  ▸  M10 dashboard
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -8,7 +7,7 @@ import streamlit as st
 from joblib import load
 from sklearn.metrics import auc, confusion_matrix, precision_recall_curve, roc_curve
 
-# ─── Config ─────────────────────────────────────────────────────────────
+# Config
 st.set_page_config(page_title="M10 – Text‑Cls Dashboard", layout="wide")
 sns.set_theme(style="whitegrid", context="notebook")
 
@@ -16,7 +15,7 @@ ARTIFACTS_DIR = Path("artifacts")
 MODEL = load(ARTIFACTS_DIR / "logreg_tfidf.joblib")
 TEST_DF = pd.read_parquet(ARTIFACTS_DIR / "test_preds.parquet")  # y_true, y_prob
 
-# ─── Header metrics ─────────────────────────────────────────────────────
+# Header metrics
 c1, c2, c3 = st.columns(3)
 with c1:
     st.metric("AUC", f"{auc(*roc_curve(TEST_DF.y_true, TEST_DF.y_prob)[:2]):.3f}")
@@ -25,7 +24,7 @@ with c2:
 with c3:
     st.metric("Recall", f"{TEST_DF.recall.mean():.3f}")
 
-# ─── Tabs ───────────────────────────────────────────────────────────────
+# Tabs
 tab_over, tab_perf, tab_feat, tab_err, tab_live = st.tabs(
     ["Story", "Performance", "Features", "Errors", "Try it"]
 )
@@ -36,11 +35,11 @@ with tab_over:
     sns.countplot(x="y_true", data=TEST_DF, ax=ax)
     st.pyplot(fig)
 
-# ─── Performance tab ────────────────────────────────────────────────────
+# Performance tab
 with tab_perf:
     st.subheader("ROC & PR curves with live threshold tuning")
 
-    # ── Cache expensive metric computation ──────────────────────────────
+    # Cache expensive metric computation
     @st.cache_data(show_spinner=False)
     def _curves(y_true, y_prob):
         fpr, tpr, roc_th = roc_curve(y_true, y_prob)
@@ -49,7 +48,7 @@ with tab_perf:
 
     fpr, tpr, roc_th, prec, rec, pr_th = _curves(TEST_DF.y_true, TEST_DF.y_prob)
 
-    # ── Side‑by‑side ROC / PR plots ─────────────────────────────────────
+    # Side‑by‑side ROC / PR plots
     c_roc, c_pr = st.columns(2, gap="large")
 
     with c_roc:
@@ -71,7 +70,7 @@ with tab_perf:
 
     st.divider()
 
-    # ── Threshold slider + dynamic confusion matrix ─────────────────────
+    # Threshold slider + dynamic confusion matrix
     thr = st.slider("Decision threshold", 0.00, 1.00, 0.50, 0.01, key="thr_slider")
     y_pred_thr = (TEST_DF.y_prob >= thr).astype(int)
     cm = confusion_matrix(TEST_DF.y_true, y_pred_thr, labels=[0, 1])
@@ -92,7 +91,7 @@ with tab_perf:
     ax_cm.set_title(f"Confusion matrix @ threshold {thr:.2f}")
     st.pyplot(fig_cm, clear_figure=True)
 
-    # Derived metrics (optional, but often useful for reviewers)
+    # Derived metrics
     tn, fp, fn, tp = cm.ravel()
     st.write(
         f"""
@@ -108,11 +107,11 @@ with tab_perf:
     )
 
 
-# ─── Feature‑insight tab ────────────────────────────────────────────────
+# Feature‑insight tab
 with tab_feat:
     st.subheader("Top coefficients (|β|)")
 
-    # ── 1. Build one tidy DataFrame of term‑coefficient pairs ───────────
+    # Build one tidy DataFrame of term‑coefficient pairs
     @st.cache_data(show_spinner=False)
     def _coef_frame(model):
         vec = model.named_steps["tfidf"]
@@ -123,13 +122,13 @@ with tab_feat:
 
     coef_df = _coef_frame(MODEL)
 
-    # ── 2. User chooses how many features per polarity to display ───────
+    # User chooses how many features per polarity to display
     top_n = st.select_slider("Top‑N per class", [5, 10, 15, 20, 30], value=10)
 
     pos_terms = coef_df.nlargest(top_n, "coef")  # strong positive weight
     neg_terms = coef_df.nsmallest(top_n, "coef")  # strong negative weight
 
-    # ── 3. Side‑by‑side barplots ────────────────────────────────────────
+    # Side‑by‑side barplots
     fig, (ax_pos, ax_neg) = plt.subplots(
         1,
         2,
@@ -157,11 +156,11 @@ with tab_feat:
 
     st.divider()
 
-    # ── 4. Contextual examples via expander ─────────────────────────────
+    # Contextual examples via expander
     all_terms = pd.concat([pos_terms.term, neg_terms.term]).unique().tolist()
     term_sel = st.selectbox("Inspect term in context", all_terms)
 
-    # pull ≤5 examples from TEST_DF containing the chosen term
+    # pull <= 5 examples from TEST_DF containing the chosen term
     mask = TEST_DF.text.str.contains(rf"\b{term_sel}\b", case=False, regex=True)
     samples = TEST_DF.loc[mask, ["text", "y_true", "y_prob"]].head(5)
 
@@ -179,14 +178,14 @@ with tab_err:
     edited = st.data_editor(wrong[["text", "y_true", "y_prob"]])
     st.caption("Double‑click any row to inspect.")
 
-# ─── Try‑it‑live tab ────────────────────────────────────────────────────
+# Try‑it‑live tab
 with tab_live:
     st.subheader("Paste text for inference")
 
     raw_text = st.text_area("Input text", height=180)
     run_btn = st.button("Predict", disabled=not raw_text.strip())
 
-    # ── Helper: highlight influential terms ─────────────────────────────
+    # highlight influential terms
     import re
 
     @st.cache_data(show_spinner=False)
@@ -223,16 +222,16 @@ with tab_live:
         )  # fall back to 0.5 if slider not used
         pred = int(prob >= thr)
 
-        # ── Display core metrics ─────────────────────────────────────────
+        # Display core metrics
         col1, col2 = st.columns(2)
         col1.metric("Probability (class 1)", f"{prob:.2%}")
         col2.metric("Predicted class", pred)
 
-        # ── Show highlighted text ───────────────────────────────────────
+        # Show highlighted text
         st.markdown("###### Influential n‑grams")
         st.markdown(_highlight_terms(raw_text, MODEL), unsafe_allow_html=True)
 
-        # ── JSON payload preview ────────────────────────────────────────
+        # JSON payload preview
         st.markdown("###### JSON payload")
         st.json(
             {

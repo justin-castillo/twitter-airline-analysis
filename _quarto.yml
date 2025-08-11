@@ -48,8 +48,10 @@ format:
   html:
     theme: cosmo
     toc: true
-    code-fold: true
-    self-contained: true
+    code-fold: true        
+    code-summary: "Code"  
+    code-tools: true        
+
 
 execute:
   freeze: auto

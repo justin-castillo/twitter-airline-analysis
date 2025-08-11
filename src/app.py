@@ -29,7 +29,7 @@ app = FastAPI(
 
 
 @app.post("/predict", response_model=InferenceResponse)
-def predict(req: InferenceRequest) -> InferenceResponse:  # noqa: D401
+def predict(req: InferenceRequest) -> InferenceResponse:
     """Return the sentiment label for the supplied text."""
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="Text must be non-empty.")
