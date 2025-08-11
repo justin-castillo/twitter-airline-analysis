@@ -1,0 +1,12 @@
+# Ignore everything
+**
+
+# Re-include only what we need
+!Dockerfile
+!.dockerignore
+!requirements.deploy.txt
+!src_2/
+!src_2/**
+!models/
+!models/**
+!requirements.txt

@@ -1,0 +1,7 @@
+streamlit
+fastapi
+uvicorn
+transformers
+torch        # pip will pull the CPU build on slim by default
+scikit-learn
+joblib

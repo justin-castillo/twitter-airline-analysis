@@ -1,19 +1,13 @@
-# syntax=docker/dockerfile:1
-
-# ---------- build stage ----------
-FROM python:3.11-slim AS builder
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
-COPY . .
-
-# ---------- runtime stage ----------
 FROM python:3.11-slim
-ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    STREAMLIT_SERVER_HEADLESS=true STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 WORKDIR /app
 
-# copy only installed site‑packages + source
-COPY --from=builder /root/.local /usr/local
-COPY --from=builder /app ./
+COPY requirements.deploy.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["uvicorn", "inference_nodes.service:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY src_2/ /app/src_2/
+COPY models/ /app/models/
+ENV PYTHONPATH=/app
+EXPOSE 8501
+CMD ["sh","-c","streamlit run src_2/streamlit_app.py --server.address=0.0.0.0 --server.port ${PORT:-8501}"]
