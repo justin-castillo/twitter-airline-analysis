@@ -1,11 +1,12 @@
 # Streamlit ≥1.35  ▸  M10 dashboard
-import pandas as pd
+from pathlib import Path
+
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
 import streamlit as st
-from sklearn.metrics import roc_curve, precision_recall_curve, auc, confusion_matrix
 from joblib import load
-from pathlib import Path
+from sklearn.metrics import auc, confusion_matrix, precision_recall_curve, roc_curve
 
 # ─── Config ─────────────────────────────────────────────────────────────
 st.set_page_config(page_title="M10 – Text‑Cls Dashboard", layout="wide")
@@ -165,7 +166,7 @@ with tab_feat:
     samples = TEST_DF.loc[mask, ["text", "y_true", "y_prob"]].head(5)
 
     with st.expander(f"Examples containing **{term_sel}** ({samples.shape[0]} shown)"):
-        for i, row in samples.iterrows():
+        for _, row in samples.iterrows():
             st.markdown(
                 f"> {row.text[:300]}{' …' if len(row.text) > 300 else ''}"
                 f"\n\n*True label :* **{row.y_true}**   *Pred prob :* **{row.y_prob:.2f}**"
@@ -206,8 +207,11 @@ with tab_live:
         highlighted = text
         for term, weight in top:
             color = "#C6F6D5" if weight > 0 else "#FEB2B2"  # green / red pastel
+            repl = (
+                rf'<span style="background:{color};padding:1px 2px;'
+                rf'border-radius:3px;"><b>\1</b></span>'
+            )
             pattern = re.compile(rf"(?i)\b({re.escape(term)})\b")
-            repl = rf'<span style="background:{color};padding:1px 2px;border-radius:3px;"><b>\1</b></span>'
             highlighted = pattern.sub(repl, highlighted)
 
         return f"<p style='line-height:1.5'>{highlighted}</p>"

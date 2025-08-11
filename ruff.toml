@@ -1,0 +1,24 @@
+# ruff.toml — repository root
+
+line-length = 100
+
+# If you want, you can keep notebooks excluded here too,
+# but pre-commit already avoids them via 'types: [python]'.
+extend-exclude = [
+  "notebooks",
+  "docs",
+  ".venv",
+  "artifacts",
+  "models",
+]
+
+[lint]
+# Keep the default rules; we'll only carve out E402 for a few files.
+select = ["E", "F", "B", "I"]
+# (no global ignore)
+
+[lint.per-file-ignores]
+# These files do a small sys.path tweak / code before imports.
+"src_2/app.py" = ["E402"]
+"src_2/streamlit_app.py" = ["E402"]
+"src_2/model.py" = ["E402"]  # safe; keeps the imports-as-written

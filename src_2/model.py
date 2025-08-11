@@ -12,21 +12,23 @@ Both expose .predict(texts, return_all_scores=False) -> list[dict].
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
-from .paths import DISTILBERT_DIR, DEFAULT_SKLEARN_PIPELINE
 from .data_prep import batch_prep
+from .paths import DEFAULT_SKLEARN_PIPELINE, DISTILBERT_DIR
 
 
 # ---------- DistilBERT (Transformers) ----------
 class DistilBertClassifier:
     def __init__(self, model_dir=None, device: Optional[int] = None):
         # Import inside to avoid hard import errors when user runs only sklearn path
+        import torch
         from transformers import (
             AutoConfig,
-            AutoTokenizer,
             AutoModelForSequenceClassification,
+            AutoTokenizer,
+        )
+        from transformers import (
             pipeline as hf_pipeline,
         )
-        import torch
 
         self.model_dir = model_dir or DISTILBERT_DIR
         if not self.model_dir.exists():

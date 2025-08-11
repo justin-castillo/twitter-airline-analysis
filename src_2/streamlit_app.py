@@ -11,8 +11,9 @@ if str(PARENT) not in sys.path:
     sys.path.insert(0, str(PARENT))
 
 import streamlit as st
+
+from src_2.paths import DEFAULT_SKLEARN_PIPELINE, DISTILBERT_DIR, MODELS_DIR
 from src_2.predict import predict_texts
-from src_2.paths import MODELS_DIR, DISTILBERT_DIR, DEFAULT_SKLEARN_PIPELINE
 
 st.set_page_config(page_title="Twitter Airline Sentiment", layout="centered")
 
