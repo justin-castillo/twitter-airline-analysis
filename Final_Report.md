@@ -1,7 +1,5 @@
-# Twitter Airline Sentiment — Final Report (Condensed)
-_Date: 2025-08-10 23:42 UTC_
+# Final Report 
 
-## Summary
 This project predicts tweet sentiment (negative, neutral, positive) for U.S. airlines to speed up customer‑care triage. Two production‑ready models run end‑to‑end: a tuned **TF‑IDF + Logistic Regression** baseline and a fine‑tuned **DistilBERT** transformer. On a held‑out test set, DistilBERT reaches **~0.84 accuracy / ~0.79 macro‑F1**; the tuned classical model delivers **~0.79 accuracy / ~0.74 macro‑F1**. DistilBERT reduces the error rate by **~24%** vs. the classical baseline.
 
 ![alt text](reports/figs_final_report/11_class_balance.png)
