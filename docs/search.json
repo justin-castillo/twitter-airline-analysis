@@ -107,49 +107,42 @@
   {
     "objectID": "Final_Report.html",
     "href": "Final_Report.html",
-    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "title": "Final Report",
     "section": "",
-    "text": "Date: 2025-08-10 23:42 UTC\n\n\nThis project predicts tweet sentiment (negative, neutral, positive) for U.S. airlines to speed up customer‑care triage. Two production‑ready models run end‑to‑end: a tuned TF‑IDF + Logistic Regression baseline and a fine‑tuned DistilBERT transformer. On a held‑out test set, DistilBERT reaches ~0.84 accuracy / ~0.79 macro‑F1; the tuned classical model delivers ~0.79 accuracy / ~0.74 macro‑F1. DistilBERT reduces the error rate by ~24% vs. the classical baseline.\n  \n\n\n\n14,640 tweets (Feb 2015). Labels are imbalanced (≈63% negative, 21% neutral, 16% positive). Use stratified 80/10/10 splits and class weighting. Typical tweets fit within 128 tokens.\n\n\n\n\nClassical baseline — bigram TF‑IDF + Logistic Regression.\n\nTransformer — fine‑tuned DistilBERT with max length 128, 2 epochs, batch 16, LR 2e‑5.\n\n  ## Results (held‑out test) - Majority baseline: ~0.63 accuracy.\n- TF‑IDF + LogReg (tuned): ~0.79 accuracy, ~0.74 macro‑F1, macro ROC‑AUC ~0.91.\n- DistilBERT (fine‑tuned): ~0.84 accuracy, ~0.79 macro‑F1.\nKey patterns: - Main confusion flow: negative ↔︎ neutral. Positive remains distinct. - Confidence distribution: most errors sit in the 0.40–0.70 band; ≥0.80 predictions are reliable. - ROC/PR: clean separation for negative and positive; neutral is hardest.\n   \n\n\n\n\nInference: single‑file CLI and a FastAPI micro‑service (/predict).\n\nPackaging: Dockerfile (Python 3.11‑slim) for one‑command run.\n\nCI/CD: GitHub Actions (lint → tests → image build; optional push on tags).\n\nReproducibility: versioned artifacts for data, models, and metrics.\n\n[Visual: CLI example + FastAPI /predict example] [Visual: Dockerfile snippet + CI workflow snippet]\n\n\n\n\nAuto‑route when max class probability ≥ 0.80.\n\nHuman‑review when 0.50–0.79.\n\nMonitor score distributions, confusion‑matrix drift, and calibration in production.\n\n\n\n\n\nApply temperature scaling for tighter probability calibration.\n\nCollect more neutral examples; test class‑weighted or focal loss.\n\nExplore a domain‑specific LM (e.g., TweetEval‑style) if neutral recall remains a pain point."
-  },
-  {
-    "objectID": "Final_Report.html#summary",
-    "href": "Final_Report.html#summary",
-    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
-    "section": "",
-    "text": "This project predicts tweet sentiment (negative, neutral, positive) for U.S. airlines to speed up customer‑care triage. Two production‑ready models run end‑to‑end: a tuned TF‑IDF + Logistic Regression baseline and a fine‑tuned DistilBERT transformer. On a held‑out test set, DistilBERT reaches ~0.84 accuracy / ~0.79 macro‑F1; the tuned classical model delivers ~0.79 accuracy / ~0.74 macro‑F1. DistilBERT reduces the error rate by ~24% vs. the classical baseline."
+    "text": "This project predicts tweet sentiment (negative, neutral, positive) for U.S. airlines to speed up customer‑care triage. Two production‑ready models run end‑to‑end: a tuned TF‑IDF + Logistic Regression baseline and a fine‑tuned DistilBERT transformer. On a held‑out test set, DistilBERT reaches ~0.84 accuracy / ~0.79 macro‑F1; the tuned classical model delivers ~0.79 accuracy / ~0.74 macro‑F1. DistilBERT reduces the error rate by ~24% vs. the classical baseline.\n  \n\n\n14,640 tweets (Feb 2015). Labels are imbalanced (≈63% negative, 21% neutral, 16% positive). Use stratified 80/10/10 splits and class weighting. Typical tweets fit within 128 tokens.\n\n\n\n\nClassical baseline — bigram TF‑IDF + Logistic Regression.\n\nTransformer — fine‑tuned DistilBERT with max length 128, 2 epochs, batch 16, LR 2e‑5.\n\n  ## Results (held‑out test) - Majority baseline: ~0.63 accuracy.\n- TF‑IDF + LogReg (tuned): ~0.79 accuracy, ~0.74 macro‑F1, macro ROC‑AUC ~0.91.\n- DistilBERT (fine‑tuned): ~0.84 accuracy, ~0.79 macro‑F1.\nKey patterns: - Main confusion flow: negative ↔︎ neutral. Positive remains distinct. - Confidence distribution: most errors sit in the 0.40–0.70 band; ≥0.80 predictions are reliable. - ROC/PR: clean separation for negative and positive; neutral is hardest.\n   \n\n\n\n\nInference: single‑file CLI and a FastAPI micro‑service (/predict).\n\nPackaging: Dockerfile (Python 3.11‑slim) for one‑command run.\n\nCI/CD: GitHub Actions (lint → tests → image build; optional push on tags).\n\nReproducibility: versioned artifacts for data, models, and metrics.\n\n[Visual: CLI example + FastAPI /predict example] [Visual: Dockerfile snippet + CI workflow snippet]\n\n\n\n\nAuto‑route when max class probability ≥ 0.80.\n\nHuman‑review when 0.50–0.79.\n\nMonitor score distributions, confusion‑matrix drift, and calibration in production.\n\n\n\n\n\nApply temperature scaling for tighter probability calibration.\n\nCollect more neutral examples; test class‑weighted or focal loss.\n\nExplore a domain‑specific LM (e.g., TweetEval‑style) if neutral recall remains a pain point."
   },
   {
     "objectID": "Final_Report.html#data",
     "href": "Final_Report.html#data",
-    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "title": "Final Report",
     "section": "",
     "text": "14,640 tweets (Feb 2015). Labels are imbalanced (≈63% negative, 21% neutral, 16% positive). Use stratified 80/10/10 splits and class weighting. Typical tweets fit within 128 tokens."
   },
   {
     "objectID": "Final_Report.html#approach",
     "href": "Final_Report.html#approach",
-    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "title": "Final Report",
     "section": "",
     "text": "Classical baseline — bigram TF‑IDF + Logistic Regression.\n\nTransformer — fine‑tuned DistilBERT with max length 128, 2 epochs, batch 16, LR 2e‑5.\n\n  ## Results (held‑out test) - Majority baseline: ~0.63 accuracy.\n- TF‑IDF + LogReg (tuned): ~0.79 accuracy, ~0.74 macro‑F1, macro ROC‑AUC ~0.91.\n- DistilBERT (fine‑tuned): ~0.84 accuracy, ~0.79 macro‑F1.\nKey patterns: - Main confusion flow: negative ↔︎ neutral. Positive remains distinct. - Confidence distribution: most errors sit in the 0.40–0.70 band; ≥0.80 predictions are reliable. - ROC/PR: clean separation for negative and positive; neutral is hardest."
   },
   {
     "objectID": "Final_Report.html#productization",
     "href": "Final_Report.html#productization",
-    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "title": "Final Report",
     "section": "",
     "text": "Inference: single‑file CLI and a FastAPI micro‑service (/predict).\n\nPackaging: Dockerfile (Python 3.11‑slim) for one‑command run.\n\nCI/CD: GitHub Actions (lint → tests → image build; optional push on tags).\n\nReproducibility: versioned artifacts for data, models, and metrics.\n\n[Visual: CLI example + FastAPI /predict example] [Visual: Dockerfile snippet + CI workflow snippet]"
   },
   {
     "objectID": "Final_Report.html#suggested-operating-policy",
     "href": "Final_Report.html#suggested-operating-policy",
-    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "title": "Final Report",
     "section": "",
     "text": "Auto‑route when max class probability ≥ 0.80.\n\nHuman‑review when 0.50–0.79.\n\nMonitor score distributions, confusion‑matrix drift, and calibration in production."
   },
   {
     "objectID": "Final_Report.html#next-steps",
     "href": "Final_Report.html#next-steps",
-    "title": "Twitter Airline Sentiment — Final Report (Condensed)",
+    "title": "Final Report",
     "section": "",
     "text": "Apply temperature scaling for tighter probability calibration.\n\nCollect more neutral examples; test class‑weighted or focal loss.\n\nExplore a domain‑specific LM (e.g., TweetEval‑style) if neutral recall remains a pain point."
   },
