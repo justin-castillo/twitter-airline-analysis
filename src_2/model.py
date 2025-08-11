@@ -68,7 +68,9 @@ class DistilBertClassifier:
                 return raw
         return raw
 
-    def predict(self, texts: List[str], return_all_scores: bool = False) -> List[Dict[str, Any]]:
+    def predict(
+        self, texts: List[str], return_all_scores: bool = False
+    ) -> List[Dict[str, Any]]:
         cleaned = batch_prep(texts, kind="transformer")
 
         if return_all_scores:
@@ -86,7 +88,10 @@ class DistilBertClassifier:
             outputs = pipe_all(cleaned)
             results: List[Dict[str, Any]] = []
             for out in outputs:
-                mapped = [{"label": self._map_label(d["label"]), "score": float(d["score"])} for d in out]
+                mapped = [
+                    {"label": self._map_label(d["label"]), "score": float(d["score"])}
+                    for d in out
+                ]
                 mapped.sort(key=lambda x: x["score"], reverse=True)
                 results.append({"top": mapped[0], "all_scores": mapped})
             return results
@@ -102,7 +107,9 @@ class DistilBertClassifier:
 @lru_cache(maxsize=2)
 def _load_joblib(path: str):
     import joblib
+
     return joblib.load(path)
+
 
 class SklearnPipelineClassifier:
     def __init__(self, pipeline_path=None):
@@ -119,7 +126,9 @@ class SklearnPipelineClassifier:
         except Exception:
             self.classes_ = None
 
-    def predict(self, texts: List[str], return_all_scores: bool = False) -> List[Dict[str, Any]]:
+    def predict(
+        self, texts: List[str], return_all_scores: bool = False
+    ) -> List[Dict[str, Any]]:
         cleaned = batch_prep(texts, kind="sklearn")
 
         if return_all_scores and hasattr(self.pipeline, "predict_proba"):
@@ -127,7 +136,10 @@ class SklearnPipelineClassifier:
             results: List[Dict[str, Any]] = []
             for row in proba:
                 pairs = [
-                    {"label": str(self.classes_[i] if self.classes_ else i), "score": float(s)}
+                    {
+                        "label": str(self.classes_[i] if self.classes_ else i),
+                        "score": float(s),
+                    }
                     for i, s in enumerate(row)
                 ]
                 pairs.sort(key=lambda x: x["score"], reverse=True)
@@ -138,12 +150,18 @@ class SklearnPipelineClassifier:
         scores = None
         if hasattr(self.pipeline, "predict_proba"):
             import numpy as np
+
             proba = self.pipeline.predict_proba(cleaned)
             scores = np.max(proba, axis=1)
 
         out: List[Dict[str, Any]] = []
         for i, label in enumerate(labels):
-            out.append({"label": str(label), "score": float(scores[i]) if scores is not None else None})
+            out.append(
+                {
+                    "label": str(label),
+                    "score": float(scores[i]) if scores is not None else None,
+                }
+            )
         return out
 
 

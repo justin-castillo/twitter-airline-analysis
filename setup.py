@@ -21,7 +21,7 @@ setup(
             "pytest-cov>=4",
             "ruff>=0.3",
             "mypy>=1.5",
-            "httpx>=0.24",   # handy for API tests
+            "httpx>=0.24",  # handy for API tests
         ],
     },
     entry_points={
