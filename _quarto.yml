@@ -3,12 +3,12 @@ project:
   output-dir: docs
   render:
     - index.qmd
-    - Final_Report.md         
-    - notebooks/*.ipynb      
+    - Final_Report.md
+    - notebooks/*.ipynb
 
 website:
   title: "Twitter Airline Sentiment"
-  site-url: "https://justin-castillo.github.io/twitter-airline-analysis/"   # optional
+  site-url: "https://justin-castillo.github.io/twitter-airline-analysis/"
   repo-url: "https://github.com/justin-castillo/twitter-airline-analysis"
   repo-actions: [source, issue]
   navbar:
@@ -17,22 +17,28 @@ website:
         href: index.qmd
       - text: Notebooks
         menu:
-          - text: EDA & Sentiment Features
+          - text: "01 — Initial Observations"
+            href: notebooks/01_initial_observations.ipynb
+          - text: "02 — Data Prep"
+            href: notebooks/02_data_prep.ipynb
+          - text: "03 — EDA & Sentiment Features"
             href: notebooks/03_eda_sentiment_features.ipynb
-          - text: Baseline Model
+          - text: "04 — Baseline Model"
             href: notebooks/04_baseline_model.ipynb
-          - text: Transformer
+          - text: "05 — Transformer"
             href: notebooks/05_transformer.ipynb
-          - text: Evaluate & Interpret
+          - text: "06 — Evaluate & Interpret"
             href: notebooks/06_evaluate_interpret.ipynb
-          - text: Optuna Tuning
+          - text: "07 — Optuna Tuning"
             href: notebooks/07_optuna_tuning.ipynb
-          - text: Model Evaluation
+          - text: "08 — Model Evaluation"
             href: notebooks/08_model_evaluation.ipynb
-          - text: Inference Demo
+          - text: "09 — Inference Demo"
             href: notebooks/09_inference_demo.ipynb
+          - text: "10 — Deployment"
+            href: notebooks/10_deployment.ipynb
       - text: Final Report
-        href: Final_Report.md  
+        href: Final_Report.md
     right:
       - text: "Live Demo"
         href: "https://twitter-airline-analysis.onrender.com"
@@ -43,8 +49,7 @@ format:
     theme: cosmo
     toc: true
     code-fold: true
-    self-contained: true       
+    self-contained: true
 
 execute:
   freeze: auto
-

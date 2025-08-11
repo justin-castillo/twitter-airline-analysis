@@ -210,23 +210,23 @@
     "text": "Code released under MIT; dataset governed by CC BY‑NC‑SA 4.0 per original source."
   },
   {
-    "objectID": "notebooks/01_project_overview.html",
-    "href": "notebooks/01_project_overview.html",
-    "title": "Project Overview",
+    "objectID": "notebooks/01_initial_observations.html",
+    "href": "notebooks/01_initial_observations.html",
+    "title": "Initial Observations",
     "section": "",
-    "text": "This notebook provides an initial examination of the Twitter US Airline Sentiment dataset (≈ 14 600 tweets, February 2015) and generates two baseline visualizations that will inform subsequent data‑preparation and modeling work."
+    "text": "This notebook provides our first look into the Twitter US Airline Sentiment dataset (≈ 14 600 tweets, February 2015) and generates two baseline visualizations that will inform subsequent data‑preparation and modeling work."
   },
   {
-    "objectID": "notebooks/01_project_overview.html#objectives",
-    "href": "notebooks/01_project_overview.html#objectives",
-    "title": "Project Overview",
+    "objectID": "notebooks/01_initial_observations.html#objectives",
+    "href": "notebooks/01_initial_observations.html#objectives",
+    "title": "Initial Observations",
     "section": "Objectives",
     "text": "Objectives\n\nLoad the raw CSV file into a pandas DataFrame.\n\nSummarize overall sentiment distribution.\n\nCompare sentiment across individual airlines.\n\nRecord key observations to guide the modeling plan."
   },
   {
-    "objectID": "notebooks/01_project_overview.html#notebook-outline",
-    "href": "notebooks/01_project_overview.html#notebook-outline",
-    "title": "Project Overview",
+    "objectID": "notebooks/01_initial_observations.html#notebook-outline",
+    "href": "notebooks/01_initial_observations.html#notebook-outline",
+    "title": "Initial Observations",
     "section": "Notebook Outline",
     "text": "Notebook Outline\n\nLoad Data\n\nData Structure\n\nSentiment Distribution\n\nSentiment by Airline\n\nKey Observations\n\n\n\nCode\n# core libraries\nfrom pathlib import Path\n\nimport pandas as pd\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nPROJ_ROOT = Path.cwd().parent\nDATA_DIR  = PROJ_ROOT / \"data\" / \"raw\"\nCSV_PATH = DATA_DIR / \"Tweets.csv\"\nFIG_DIR   = PROJ_ROOT / \"reports\" / \"figs_eda\"\nFIG_DIR.mkdir(parents=True, exist_ok=True)"
   },
