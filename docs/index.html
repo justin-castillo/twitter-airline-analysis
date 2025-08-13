@@ -200,13 +200,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#objectives" id="toc-objectives" class="nav-link active" data-scroll-target="#objectives">Objectives</a></li>
+  <li><a href="#twitter-us-airline-sentiment-endtoend-nlp-pipeline" id="toc-twitter-us-airline-sentiment-endtoend-nlp-pipeline" class="nav-link active" data-scroll-target="#twitter-us-airline-sentiment-endtoend-nlp-pipeline">Twitter US Airline Sentiment — End‑to‑End NLP Pipeline</a>
+  <ul class="collapse">
+  <li><a href="#key-results-heldout-test" id="toc-key-results-heldout-test" class="nav-link" data-scroll-target="#key-results-heldout-test">Key results (held‑out test)</a></li>
   <li><a href="#dataset" id="toc-dataset" class="nav-link" data-scroll-target="#dataset">Dataset</a></li>
-  <li><a href="#folder-structure" id="toc-folder-structure" class="nav-link" data-scroll-target="#folder-structure">Folder structure</a></li>
-  <li><a href="#tools-used" id="toc-tools-used" class="nav-link" data-scroll-target="#tools-used">Tools used</a></li>
-  <li><a href="#quickstart" id="toc-quickstart" class="nav-link" data-scroll-target="#quickstart">Quick‑start</a></li>
-  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a></li>
-  <li><a href="#roadmap" id="toc-roadmap" class="nav-link" data-scroll-target="#roadmap">Roadmap</a></li>
+  <li><a href="#repository-layout" id="toc-repository-layout" class="nav-link" data-scroll-target="#repository-layout">Repository layout</a></li>
+  <li><a href="#pipeline-overview" id="toc-pipeline-overview" class="nav-link" data-scroll-target="#pipeline-overview">Pipeline overview</a>
+  <ul class="collapse">
+  <li><a href="#data-preparation-eda" id="toc-data-preparation-eda" class="nav-link" data-scroll-target="#data-preparation-eda">1) Data preparation &amp; EDA</a></li>
+  <li><a href="#classical-baseline-tfidf-logistic-regression" id="toc-classical-baseline-tfidf-logistic-regression" class="nav-link" data-scroll-target="#classical-baseline-tfidf-logistic-regression">2) Classical baseline — TF‑IDF&nbsp;+&nbsp;Logistic Regression</a></li>
+  <li><a href="#transformer-distilbert" id="toc-transformer-distilbert" class="nav-link" data-scroll-target="#transformer-distilbert">3) Transformer — DistilBERT</a></li>
+  </ul></li>
+  <li><a href="#inference" id="toc-inference" class="nav-link" data-scroll-target="#inference">Inference</a>
+  <ul class="collapse">
+  <li><a href="#a-streamlit-local-demo" id="toc-a-streamlit-local-demo" class="nav-link" data-scroll-target="#a-streamlit-local-demo">A) Streamlit (local demo)</a></li>
+  <li><a href="#b-fastapi-programmatic" id="toc-b-fastapi-programmatic" class="nav-link" data-scroll-target="#b-fastapi-programmatic">B) FastAPI (programmatic)</a></li>
+  <li><a href="#c-from-python" id="toc-c-from-python" class="nav-link" data-scroll-target="#c-from-python">C) From Python</a></li>
+  </ul></li>
+  <li><a href="#docker-ci" id="toc-docker-ci" class="nav-link" data-scroll-target="#docker-ci">Docker &amp; CI</a>
+  <ul class="collapse">
+  <li><a href="#build-locally" id="toc-build-locally" class="nav-link" data-scroll-target="#build-locally">Build locally</a></li>
+  <li><a href="#github-actions" id="toc-github-actions" class="nav-link" data-scroll-target="#github-actions">GitHub Actions</a></li>
+  </ul></li>
+  <li><a href="#reproducibility-artifacts" id="toc-reproducibility-artifacts" class="nav-link" data-scroll-target="#reproducibility-artifacts">Reproducibility &amp; artifacts</a></li>
+  <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps">Next steps</a></li>
+  </ul></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/justin-castillo/twitter-airline-analysis/blob/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/justin-castillo/twitter-airline-analysis/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -232,157 +250,169 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>This repository delivers an end‑to‑end natural‑language‑processing pipeline for the <strong>Twitter US Airline Sentiment</strong> dataset (≈14 600 tweets from Feb 2015). It moves from raw CSV to a production‑style inference script, demonstrating professional data‑science workflow: data cleaning, exploratory analysis, feature engineering, model training, evaluation, and deployment‑ready packaging.</p>
-<section id="objectives" class="level2">
-<h2 class="anchored" data-anchor-id="objectives">Objectives</h2>
-<ol type="1">
-<li>Quantify overall positive, neutral, and negative sentiment toward major U.S. airlines.<br>
-</li>
-<li>Identify the top drivers of negative sentiment (e.g., late flight, rude service).<br>
-</li>
-<li>Benchmark classical ML (logistic regression, linear SVM, gradient boosting) against a simple LSTM baseline.<br>
-</li>
-<li>Package the best model behind a lightweight REST endpoint for real‑time scoring.</li>
-</ol>
+<section id="twitter-us-airline-sentiment-endtoend-nlp-pipeline" class="level1">
+<h1>Twitter US Airline Sentiment — End‑to‑End NLP Pipeline</h1>
+<p>This repository delivers an end‑to‑end sentiment‑analysis workflow for the <strong>Twitter US Airline Sentiment</strong> dataset (≈ 14,600 tweets, Feb&nbsp;2015): data prep → EDA → <strong>TF‑IDF&nbsp;+&nbsp;Logistic Regression</strong> → <strong>DistilBERT</strong> fine‑tune → evaluation &amp; interpretability → <strong>Streamlit demo</strong> and <strong>FastAPI</strong> service → <strong>Docker + CI</strong> for production‑style packaging.</p>
+<hr>
+<section id="key-results-heldout-test" class="level2">
+<h2 class="anchored" data-anchor-id="key-results-heldout-test">Key results (held‑out test)</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 28%">
+<col style="width: 28%">
+<col style="width: 21%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Model</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Macro‑F1</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>DistilBERT (fine‑tuned)</strong></td>
+<td style="text-align: right;"><strong>0.836</strong></td>
+<td style="text-align: right;"><strong>0.788</strong></td>
+<td>Strong ROC/PR; main confusions are <em>negative&nbsp;↔︎&nbsp;neutral</em>.</td>
+</tr>
+<tr class="even">
+<td><strong>TF‑IDF&nbsp;+&nbsp;Logistic Regression (tuned)</strong></td>
+<td style="text-align: right;">0.790</td>
+<td style="text-align: right;">0.739</td>
+<td>Macro ROC‑AUC ≈ 0.907; transparent token weights; good fallback.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Operational guidance.</strong> Errors concentrate at mid confidences (~0.40–0.70); consider <strong>auto‑route ≥ 0.80</strong> and <strong>human‑review 0.50–0.79</strong> in production.</p>
+<hr>
 </section>
 <section id="dataset" class="level2">
 <h2 class="anchored" data-anchor-id="dataset">Dataset</h2>
 <ul>
-<li><strong>Source</strong> Kaggle → <em>Twitter US Airline Sentiment</em><br>
+<li><strong>Source.</strong> Kaggle — <em>Twitter US Airline Sentiment</em> (Feb–Mar&nbsp;2015).</li>
+<li><strong>Labels.</strong> <code>negative</code>, <code>neutral</code>, <code>positive</code>, plus an optional <code>negativereason</code> field for error analysis.</li>
+<li><strong>Imbalance.</strong> ~63 % negative, 21 % neutral, 16 % positive. Use stratified splits and class weighting for classical models.</li>
+<li><strong>File layout.</strong> Place the raw CSV at <code>data/raw/Tweets.csv</code>. Processed parquet and feather splits are written to <code>data/processed/</code>.</li>
+</ul>
+<hr>
+</section>
+<section id="repository-layout" class="level2">
+<h2 class="anchored" data-anchor-id="repository-layout">Repository layout</h2>
+<pre><code>notebooks/                    # EDA → modeling → deployment (PDF exports in repo)
+models/
+  distilbert_twitter/final/   # Fine‑tuned DistilBERT checkpoint + tokenizer
+  logreg_tfidf.joblib         # Baseline sklearn pipeline
+  logreg_tfidf_optuna.joblib  # (optional) tuned sklearn pipeline
+src_2/
+  app.py                      # FastAPI service (POST /predict)
+  streamlit_app.py            # Streamlit demo UI
+  model.py, predict.py        # Unified loader + thin inference API
+  data_prep.py, paths.py      # Lightweight text prep + robust project paths
+reports/                      # Metrics JSON + evaluation figures
+Dockerfile                    # Multi‑stage image (Python 3.11‑slim)
+.github/workflows/ci.yml      # Lint → tests → docker build → optional push on tags</code></pre>
+<hr>
+</section>
+<section id="pipeline-overview" class="level2">
+<h2 class="anchored" data-anchor-id="pipeline-overview">Pipeline overview</h2>
+<section id="data-preparation-eda" class="level3">
+<h3 class="anchored" data-anchor-id="data-preparation-eda">1) Data preparation &amp; EDA</h3>
+<ul>
+<li>Minimal, robust cleaning (normalize whitespace; lowercase only for sklearn paths).<br>
 </li>
-<li><strong>Size</strong>  ≈14 600 English‑language tweets<br>
+<li>Cleaned data are saved to <strong>Parquet</strong>; stratified <strong>Feather splits</strong> <code>X_*</code> / <code>y_*</code> are produced for <code>train</code>/<code>val</code>/<code>test</code> (11,712 / 1,464 / 1,464).<br>
 </li>
-<li><strong>Labels</strong> <code>positive</code>, <code>neutral</code>, <code>negative</code> + 11 negative‑reason categories<br>
-</li>
-<li><strong>Timeframe</strong> Feb – Mar 2015</li>
+<li>EDA: class balance, lengths, negative‑reason categories, and airline‑level sentiment.</li>
 </ul>
 </section>
-<section id="folder-structure" class="level2">
-<h2 class="anchored" data-anchor-id="folder-structure">Folder structure</h2>
-<pre><code>twitter-sentiment-analysis/
-│
-├─ data/                # Raw and processed datasets
-├─ notebooks/           # EDA and modelling notebooks (clear, modular)
-├─ src/
-│   ├─ data_prep.py     # Reproducible cleaning + feature pipeline
-│   ├─ train.py         # Model training + hyper‑parameter search
-│   └─ predict.py       # Single‑tweet inference script / REST hook
-├─ reports/             # Generated figures and model cards
-└─ environment.yml      # Locked, reproducible Conda environment</code></pre>
-</section>
-<section id="tools-used" class="level2">
-<h2 class="anchored" data-anchor-id="tools-used">Tools used</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 24%">
-<col style="width: 76%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Tool</th>
-<th>Why it was chosen</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Python 3.11</strong></td>
-<td>Widely adopted language for modern NLP and data pipelines.</td>
-</tr>
-<tr class="even">
-<td><strong>pandas</strong></td>
-<td>Efficient tabular manipulation and cleaning.</td>
-</tr>
-<tr class="odd">
-<td><strong>scikit‑learn</strong></td>
-<td>Fast prototyping of classical models and grid/RandomizedSearchCV.</td>
-</tr>
-<tr class="even">
-<td><strong>NLTK / spaCy</strong></td>
-<td>Robust tokenization, lemmatization, and stop‑word management.</td>
-</tr>
-<tr class="odd">
-<td><strong>TensorFlow / Keras</strong></td>
-<td>Quick LSTM baseline without heavy infrastructure.</td>
-</tr>
-<tr class="even">
-<td><strong>Optuna</strong></td>
-<td>More efficient hyper‑parameter tuning than manual grid search.</td>
-</tr>
-<tr class="odd">
-<td><strong>matplotlib / seaborn</strong></td>
-<td>Publication‑quality EDA and error‑analysis visuals.</td>
-</tr>
-<tr class="even">
-<td><strong>FastAPI</strong></td>
-<td>Minimal‑overhead REST interface for model inference.</td>
-</tr>
-<tr class="odd">
-<td><strong>pre‑commit + black + ruff</strong></td>
-<td>Enforce consistent code style and linting on every commit.</td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="quickstart" class="level2">
-<h2 class="anchored" data-anchor-id="quickstart">Quick‑start</h2>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1.  Clone repo and set working dir</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/<span class="op">&lt;</span>your‑user<span class="op">&gt;</span>/twitter-sentiment-analysis.git</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> twitter-sentiment-analysis</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 2.  Create reproducible environment</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> env create <span class="at">-f</span> environment.yml</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> activate twitter-sentiment-env</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 3.  Download data (Kaggle API required)</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="ex">kaggle</span> datasets download <span class="at">-d</span> crowdflower/twitter-airline-sentiment <span class="at">-p</span> data/raw <span class="at">--unzip</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 4.  Run pipeline end‑to‑end</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> src/train.py         <span class="co"># trains models + logs metrics</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> src/predict.py <span class="at">-t</span> <span class="st">"Flight was delayed but crew handled it well."</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-<section id="results" class="level2">
-<h2 class="anchored" data-anchor-id="results">Results</h2>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Model</th>
-<th>Macro‑F1</th>
-<th>Accuracy</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Logistic regression (TF‑IDF)</td>
-<td>0.83</td>
-<td>0.84</td>
-</tr>
-<tr class="even">
-<td>SVM (char‑ngrams)</td>
-<td>0.85</td>
-<td>0.86</td>
-</tr>
-<tr class="odd">
-<td>Bi‑LSTM (GloVe 100 d)</td>
-<td>0.87</td>
-<td>0.88</td>
-</tr>
-</tbody>
-</table>
-<p><em>(Full confusion matrices and SHAP‑style feature attributions are in <code>reports/</code>.)</em></p>
-</section>
-<section id="roadmap" class="level2">
-<h2 class="anchored" data-anchor-id="roadmap">Roadmap</h2>
-<ul class="task-list">
-<li><label><input type="checkbox">Deploy inference endpoint to Render/Heroku with CI/CD.<br>
-</label></li>
-<li><label><input type="checkbox">Add multilingual transfer‑learning experiment with XLM‑R.<br>
-</label></li>
-<li><label><input type="checkbox">Replace LSTM with lightweight DistilBERT for higher recall.</label></li>
+<section id="classical-baseline-tfidf-logistic-regression" class="level3">
+<h3 class="anchored" data-anchor-id="classical-baseline-tfidf-logistic-regression">2) Classical baseline — TF‑IDF&nbsp;+&nbsp;Logistic Regression</h3>
+<ul>
+<li>Bi‑gram TF‑IDF (<code>max_features</code> up to 50k) + <code>LogisticRegression(class_weight='balanced')</code>.<br>
+</li>
+<li>Validation ≈ 0.79 accuracy; macro‑F1 ≈ 0.74.<br>
+</li>
+<li><strong>Optuna tuning</strong> jointly searches TF‑IDF and LR hyper‑parameters; the best pipeline is persisted as <code>models/logreg_tfidf_optuna.joblib</code>.<br>
+</li>
+<li>Diagnostics: confusion matrix, ROC, token‑importance bars, confidence histograms, t‑SNE, lift curves.</li>
 </ul>
+</section>
+<section id="transformer-distilbert" class="level3">
+<h3 class="anchored" data-anchor-id="transformer-distilbert">3) Transformer — DistilBERT</h3>
+<ul>
+<li>Base: <code>distilbert-base-uncased</code>, max length&nbsp;128, batch&nbsp;16, LR&nbsp;2e‑5, <strong>2 epochs</strong>.<br>
+</li>
+<li>Test results ≈ 0.84 accuracy / ≈ 0.79 macro‑F1; negative/positive are cleanly separated, neutral is harder.<br>
+</li>
+<li>Final operating policy derived from calibration &amp; confidence diagnostics.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="inference" class="level2">
+<h2 class="anchored" data-anchor-id="inference">Inference</h2>
+<section id="a-streamlit-local-demo" class="level3">
+<h3 class="anchored" data-anchor-id="a-streamlit-local-demo">A) Streamlit (local demo)</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">streamlit</span> run src_2/streamlit_app.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Use the sidebar to switch between <strong>distilbert</strong> and <strong>sklearn</strong>, and to return all class scores.</p>
+</section>
+<section id="b-fastapi-programmatic" class="level3">
+<h3 class="anchored" data-anchor-id="b-fastapi-programmatic">B) FastAPI (programmatic)</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uvicorn</span> src_2.app:app <span class="at">--host</span> 0.0.0.0 <span class="at">--port</span> 8000</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># POST /predict with either payload</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># { "text": "The flight was delayed" }</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># { "texts": ["Great staff!", "Late again :("], "model_name": "distilbert", "return_all_scores": true }</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="c-from-python" class="level3">
+<h3 class="anchored" data-anchor-id="c-from-python">C) From Python</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> src_2.predict <span class="im">import</span> predict_texts</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>predict_texts(<span class="st">"Great service!"</span>, model_name<span class="op">=</span><span class="st">"distilbert"</span>, return_all_scores<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<hr>
+</section>
+</section>
+<section id="docker-ci" class="level2">
+<h2 class="anchored" data-anchor-id="docker-ci">Docker &amp; CI</h2>
+<section id="build-locally" class="level3">
+<h3 class="anchored" data-anchor-id="build-locally">Build locally</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> build <span class="at">-t</span> airline-sentiment:latest .</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">-p</span> 8000:8000 airline-sentiment:latest</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Then POST to http://127.0.0.1:8000/predict</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The Dockerfile uses a multi‑stage <strong>Python&nbsp;3.11‑slim</strong> base and launches Uvicorn with <code>src_2.app:app</code> as the entrypoint.</p>
+</section>
+<section id="github-actions" class="level3">
+<h3 class="anchored" data-anchor-id="github-actions">GitHub Actions</h3>
+<p>The CI workflow lints &amp; tests the repo, builds the Docker image on every commit, and (on tags like <code>v*.*.*</code>) can push to a container registry.</p>
+<hr>
+</section>
+</section>
+<section id="reproducibility-artifacts" class="level2">
+<h2 class="anchored" data-anchor-id="reproducibility-artifacts">Reproducibility &amp; artifacts</h2>
+<ul>
+<li><strong>Models:</strong> <code>models/distilbert_twitter/final/</code>, <code>models/logreg_tfidf*.joblib</code><br>
+</li>
+<li><strong>Metrics &amp; figures:</strong> confusion matrices, ROC/PR, calibration, t‑SNE, confidence histograms, lift curves under <code>reports/</code></li>
+</ul>
+<hr>
+</section>
+<section id="next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="next-steps">Next steps</h2>
+<ul>
+<li>Apply temperature scaling for tighter probability calibration.<br>
+</li>
+<li>Collect / augment <strong>neutral</strong> examples; consider class‑weighted or focal loss.<br>
+</li>
+<li>Explore domain‑specific LMs (e.g., TweetEval‑style) if neutral recall remains the main pain point.</li>
+</ul>
+<hr>
+<p><em>This README reflects the implemented stack (TF‑IDF&nbsp;+&nbsp;LogReg and DistilBERT), the shipped demo apps (Streamlit + FastAPI), and the packaging (Docker + CI).</em></p>
 
 
 <!-- -->
 
+</section>
 </section>
 
 </main> <!-- /main -->
@@ -836,11 +866,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     }
   });
   </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="sourceCode" id="cb3" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Project Overview"</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>{{&lt; include README.md &gt;}}</span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb6" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Project Overview"</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>{{&lt; include README.md &gt;}}</span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 

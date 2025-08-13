@@ -165,56 +165,63 @@
     "href": "index.html",
     "title": "Project Overview",
     "section": "",
-    "text": "This repository delivers an end‑to‑end natural‑language‑processing pipeline for the Twitter US Airline Sentiment dataset (≈14 600 tweets from Feb 2015). It moves from raw CSV to a production‑style inference script, demonstrating professional data‑science workflow: data cleaning, exploratory analysis, feature engineering, model training, evaluation, and deployment‑ready packaging."
+    "text": "This repository delivers an end‑to‑end sentiment‑analysis workflow for the Twitter US Airline Sentiment dataset (≈ 14,600 tweets, Feb 2015): data prep → EDA → TF‑IDF + Logistic Regression → DistilBERT fine‑tune → evaluation & interpretability → Streamlit demo and FastAPI service → Docker + CI for production‑style packaging.\n\n\n\n\n\n\n\n\n\n\n\n\nModel\nAccuracy\nMacro‑F1\nNotes\n\n\n\n\nDistilBERT (fine‑tuned)\n0.836\n0.788\nStrong ROC/PR; main confusions are negative ↔︎ neutral.\n\n\nTF‑IDF + Logistic Regression (tuned)\n0.790\n0.739\nMacro ROC‑AUC ≈ 0.907; transparent token weights; good fallback.\n\n\n\nOperational guidance. Errors concentrate at mid confidences (~0.40–0.70); consider auto‑route ≥ 0.80 and human‑review 0.50–0.79 in production.\n\n\n\n\n\nSource. Kaggle — Twitter US Airline Sentiment (Feb–Mar 2015).\nLabels. negative, neutral, positive, plus an optional negativereason field for error analysis.\nImbalance. ~63 % negative, 21 % neutral, 16 % positive. Use stratified splits and class weighting for classical models.\nFile layout. Place the raw CSV at data/raw/Tweets.csv. Processed parquet and feather splits are written to data/processed/.\n\n\n\n\n\nnotebooks/                    # EDA → modeling → deployment (PDF exports in repo)\nmodels/\n  distilbert_twitter/final/   # Fine‑tuned DistilBERT checkpoint + tokenizer\n  logreg_tfidf.joblib         # Baseline sklearn pipeline\n  logreg_tfidf_optuna.joblib  # (optional) tuned sklearn pipeline\nsrc_2/\n  app.py                      # FastAPI service (POST /predict)\n  streamlit_app.py            # Streamlit demo UI\n  model.py, predict.py        # Unified loader + thin inference API\n  data_prep.py, paths.py      # Lightweight text prep + robust project paths\nreports/                      # Metrics JSON + evaluation figures\nDockerfile                    # Multi‑stage image (Python 3.11‑slim)\n.github/workflows/ci.yml      # Lint → tests → docker build → optional push on tags\n\n\n\n\n\n\n\nMinimal, robust cleaning (normalize whitespace; lowercase only for sklearn paths).\n\nCleaned data are saved to Parquet; stratified Feather splits X_* / y_* are produced for train/val/test (11,712 / 1,464 / 1,464).\n\nEDA: class balance, lengths, negative‑reason categories, and airline‑level sentiment.\n\n\n\n\n\nBi‑gram TF‑IDF (max_features up to 50k) + LogisticRegression(class_weight='balanced').\n\nValidation ≈ 0.79 accuracy; macro‑F1 ≈ 0.74.\n\nOptuna tuning jointly searches TF‑IDF and LR hyper‑parameters; the best pipeline is persisted as models/logreg_tfidf_optuna.joblib.\n\nDiagnostics: confusion matrix, ROC, token‑importance bars, confidence histograms, t‑SNE, lift curves.\n\n\n\n\n\nBase: distilbert-base-uncased, max length 128, batch 16, LR 2e‑5, 2 epochs.\n\nTest results ≈ 0.84 accuracy / ≈ 0.79 macro‑F1; negative/positive are cleanly separated, neutral is harder.\n\nFinal operating policy derived from calibration & confidence diagnostics.\n\n\n\n\n\n\n\n\nstreamlit run src_2/streamlit_app.py\nUse the sidebar to switch between distilbert and sklearn, and to return all class scores.\n\n\n\nuvicorn src_2.app:app --host 0.0.0.0 --port 8000\n# POST /predict with either payload\n# { \"text\": \"The flight was delayed\" }\n# { \"texts\": [\"Great staff!\", \"Late again :(\"], \"model_name\": \"distilbert\", \"return_all_scores\": true }\n\n\n\nfrom src_2.predict import predict_texts\npredict_texts(\"Great service!\", model_name=\"distilbert\", return_all_scores=True)\n\n\n\n\n\n\n\ndocker build -t airline-sentiment:latest .\ndocker run -p 8000:8000 airline-sentiment:latest\n# Then POST to http://127.0.0.1:8000/predict\nThe Dockerfile uses a multi‑stage Python 3.11‑slim base and launches Uvicorn with src_2.app:app as the entrypoint.\n\n\n\nThe CI workflow lints & tests the repo, builds the Docker image on every commit, and (on tags like v*.*.*) can push to a container registry.\n\n\n\n\n\n\nModels: models/distilbert_twitter/final/, models/logreg_tfidf*.joblib\n\nMetrics & figures: confusion matrices, ROC/PR, calibration, t‑SNE, confidence histograms, lift curves under reports/\n\n\n\n\n\n\nApply temperature scaling for tighter probability calibration.\n\nCollect / augment neutral examples; consider class‑weighted or focal loss.\n\nExplore domain‑specific LMs (e.g., TweetEval‑style) if neutral recall remains the main pain point.\n\n\nThis README reflects the implemented stack (TF‑IDF + LogReg and DistilBERT), the shipped demo apps (Streamlit + FastAPI), and the packaging (Docker + CI)."
   },
   {
-    "objectID": "index.html#objectives",
-    "href": "index.html#objectives",
+    "objectID": "index.html#key-results-heldout-test",
+    "href": "index.html#key-results-heldout-test",
     "title": "Project Overview",
-    "section": "Objectives",
-    "text": "Objectives\n\nQuantify overall positive, neutral, and negative sentiment toward major U.S. airlines.\n\nIdentify the top drivers of negative sentiment (e.g., late flight, rude service).\n\nBenchmark classical ML (logistic regression, linear SVM, gradient boosting) against a simple LSTM baseline.\n\nPackage the best model behind a lightweight REST endpoint for real‑time scoring."
+    "section": "",
+    "text": "Model\nAccuracy\nMacro‑F1\nNotes\n\n\n\n\nDistilBERT (fine‑tuned)\n0.836\n0.788\nStrong ROC/PR; main confusions are negative ↔︎ neutral.\n\n\nTF‑IDF + Logistic Regression (tuned)\n0.790\n0.739\nMacro ROC‑AUC ≈ 0.907; transparent token weights; good fallback.\n\n\n\nOperational guidance. Errors concentrate at mid confidences (~0.40–0.70); consider auto‑route ≥ 0.80 and human‑review 0.50–0.79 in production."
   },
   {
     "objectID": "index.html#dataset",
     "href": "index.html#dataset",
     "title": "Project Overview",
-    "section": "Dataset",
-    "text": "Dataset\n\nSource Kaggle → Twitter US Airline Sentiment\n\nSize  ≈14 600 English‑language tweets\n\nLabels positive, neutral, negative + 11 negative‑reason categories\n\nTimeframe Feb – Mar 2015"
+    "section": "",
+    "text": "Source. Kaggle — Twitter US Airline Sentiment (Feb–Mar 2015).\nLabels. negative, neutral, positive, plus an optional negativereason field for error analysis.\nImbalance. ~63 % negative, 21 % neutral, 16 % positive. Use stratified splits and class weighting for classical models.\nFile layout. Place the raw CSV at data/raw/Tweets.csv. Processed parquet and feather splits are written to data/processed/."
   },
   {
-    "objectID": "index.html#folder-structure",
-    "href": "index.html#folder-structure",
+    "objectID": "index.html#repository-layout",
+    "href": "index.html#repository-layout",
     "title": "Project Overview",
-    "section": "Folder structure",
-    "text": "Folder structure\ntwitter-sentiment-analysis/\n│\n├─ data/                # Raw and processed datasets\n├─ notebooks/           # EDA and modelling notebooks (clear, modular)\n├─ src/\n│   ├─ data_prep.py     # Reproducible cleaning + feature pipeline\n│   ├─ train.py         # Model training + hyper‑parameter search\n│   └─ predict.py       # Single‑tweet inference script / REST hook\n├─ reports/             # Generated figures and model cards\n└─ environment.yml      # Locked, reproducible Conda environment"
+    "section": "",
+    "text": "notebooks/                    # EDA → modeling → deployment (PDF exports in repo)\nmodels/\n  distilbert_twitter/final/   # Fine‑tuned DistilBERT checkpoint + tokenizer\n  logreg_tfidf.joblib         # Baseline sklearn pipeline\n  logreg_tfidf_optuna.joblib  # (optional) tuned sklearn pipeline\nsrc_2/\n  app.py                      # FastAPI service (POST /predict)\n  streamlit_app.py            # Streamlit demo UI\n  model.py, predict.py        # Unified loader + thin inference API\n  data_prep.py, paths.py      # Lightweight text prep + robust project paths\nreports/                      # Metrics JSON + evaluation figures\nDockerfile                    # Multi‑stage image (Python 3.11‑slim)\n.github/workflows/ci.yml      # Lint → tests → docker build → optional push on tags"
   },
   {
-    "objectID": "index.html#tools-used",
-    "href": "index.html#tools-used",
+    "objectID": "index.html#pipeline-overview",
+    "href": "index.html#pipeline-overview",
     "title": "Project Overview",
-    "section": "Tools used",
-    "text": "Tools used\n\n\n\n\n\n\n\nTool\nWhy it was chosen\n\n\n\n\nPython 3.11\nWidely adopted language for modern NLP and data pipelines.\n\n\npandas\nEfficient tabular manipulation and cleaning.\n\n\nscikit‑learn\nFast prototyping of classical models and grid/RandomizedSearchCV.\n\n\nNLTK / spaCy\nRobust tokenization, lemmatization, and stop‑word management.\n\n\nTensorFlow / Keras\nQuick LSTM baseline without heavy infrastructure.\n\n\nOptuna\nMore efficient hyper‑parameter tuning than manual grid search.\n\n\nmatplotlib / seaborn\nPublication‑quality EDA and error‑analysis visuals.\n\n\nFastAPI\nMinimal‑overhead REST interface for model inference.\n\n\npre‑commit + black + ruff\nEnforce consistent code style and linting on every commit."
+    "section": "",
+    "text": "Minimal, robust cleaning (normalize whitespace; lowercase only for sklearn paths).\n\nCleaned data are saved to Parquet; stratified Feather splits X_* / y_* are produced for train/val/test (11,712 / 1,464 / 1,464).\n\nEDA: class balance, lengths, negative‑reason categories, and airline‑level sentiment.\n\n\n\n\n\nBi‑gram TF‑IDF (max_features up to 50k) + LogisticRegression(class_weight='balanced').\n\nValidation ≈ 0.79 accuracy; macro‑F1 ≈ 0.74.\n\nOptuna tuning jointly searches TF‑IDF and LR hyper‑parameters; the best pipeline is persisted as models/logreg_tfidf_optuna.joblib.\n\nDiagnostics: confusion matrix, ROC, token‑importance bars, confidence histograms, t‑SNE, lift curves.\n\n\n\n\n\nBase: distilbert-base-uncased, max length 128, batch 16, LR 2e‑5, 2 epochs.\n\nTest results ≈ 0.84 accuracy / ≈ 0.79 macro‑F1; negative/positive are cleanly separated, neutral is harder.\n\nFinal operating policy derived from calibration & confidence diagnostics."
   },
   {
-    "objectID": "index.html#quickstart",
-    "href": "index.html#quickstart",
+    "objectID": "index.html#inference",
+    "href": "index.html#inference",
     "title": "Project Overview",
-    "section": "Quick‑start",
-    "text": "Quick‑start\n# 1.  Clone repo and set working dir\ngit clone https://github.com/&lt;your‑user&gt;/twitter-sentiment-analysis.git\ncd twitter-sentiment-analysis\n\n# 2.  Create reproducible environment\nconda env create -f environment.yml\nconda activate twitter-sentiment-env\n\n# 3.  Download data (Kaggle API required)\nkaggle datasets download -d crowdflower/twitter-airline-sentiment -p data/raw --unzip\n\n# 4.  Run pipeline end‑to‑end\npython src/train.py         # trains models + logs metrics\npython src/predict.py -t \"Flight was delayed but crew handled it well.\""
+    "section": "",
+    "text": "streamlit run src_2/streamlit_app.py\nUse the sidebar to switch between distilbert and sklearn, and to return all class scores.\n\n\n\nuvicorn src_2.app:app --host 0.0.0.0 --port 8000\n# POST /predict with either payload\n# { \"text\": \"The flight was delayed\" }\n# { \"texts\": [\"Great staff!\", \"Late again :(\"], \"model_name\": \"distilbert\", \"return_all_scores\": true }\n\n\n\nfrom src_2.predict import predict_texts\npredict_texts(\"Great service!\", model_name=\"distilbert\", return_all_scores=True)"
   },
   {
-    "objectID": "index.html#results",
-    "href": "index.html#results",
+    "objectID": "index.html#docker-ci",
+    "href": "index.html#docker-ci",
     "title": "Project Overview",
-    "section": "Results",
-    "text": "Results\n\n\n\nModel\nMacro‑F1\nAccuracy\n\n\n\n\nLogistic regression (TF‑IDF)\n0.83\n0.84\n\n\nSVM (char‑ngrams)\n0.85\n0.86\n\n\nBi‑LSTM (GloVe 100 d)\n0.87\n0.88\n\n\n\n(Full confusion matrices and SHAP‑style feature attributions are in reports/.)"
+    "section": "",
+    "text": "docker build -t airline-sentiment:latest .\ndocker run -p 8000:8000 airline-sentiment:latest\n# Then POST to http://127.0.0.1:8000/predict\nThe Dockerfile uses a multi‑stage Python 3.11‑slim base and launches Uvicorn with src_2.app:app as the entrypoint.\n\n\n\nThe CI workflow lints & tests the repo, builds the Docker image on every commit, and (on tags like v*.*.*) can push to a container registry."
   },
   {
-    "objectID": "index.html#roadmap",
-    "href": "index.html#roadmap",
+    "objectID": "index.html#reproducibility-artifacts",
+    "href": "index.html#reproducibility-artifacts",
     "title": "Project Overview",
-    "section": "Roadmap",
-    "text": "Roadmap\n\nDeploy inference endpoint to Render/Heroku with CI/CD.\n\nAdd multilingual transfer‑learning experiment with XLM‑R.\n\nReplace LSTM with lightweight DistilBERT for higher recall."
+    "section": "",
+    "text": "Models: models/distilbert_twitter/final/, models/logreg_tfidf*.joblib\n\nMetrics & figures: confusion matrices, ROC/PR, calibration, t‑SNE, confidence histograms, lift curves under reports/"
+  },
+  {
+    "objectID": "index.html#next-steps",
+    "href": "index.html#next-steps",
+    "title": "Project Overview",
+    "section": "",
+    "text": "Apply temperature scaling for tighter probability calibration.\n\nCollect / augment neutral examples; consider class‑weighted or focal loss.\n\nExplore domain‑specific LMs (e.g., TweetEval‑style) if neutral recall remains the main pain point.\n\n\nThis README reflects the implemented stack (TF‑IDF + LogReg and DistilBERT), the shipped demo apps (Streamlit + FastAPI), and the packaging (Docker + CI)."
   },
   {
     "objectID": "notebooks/01_initial_observations.html",
