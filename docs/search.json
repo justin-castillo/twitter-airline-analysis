@@ -65,21 +65,21 @@
   {
     "objectID": "notebooks/04_baseline_model.html",
     "href": "notebooks/04_baseline_model.html",
-    "title": "Baseline Classical Models",
+    "title": "Baseline Model",
     "section": "",
     "text": "Establish a reproducible TF‑IDF + Logistic Regression benchmark for Twitter‑airline sentiment."
   },
   {
     "objectID": "notebooks/04_baseline_model.html#notebook-outline",
     "href": "notebooks/04_baseline_model.html#notebook-outline",
-    "title": "Baseline Classical Models",
+    "title": "Baseline Model",
     "section": "Notebook Outline",
     "text": "Notebook Outline\n\nLoad Processed Data & Train-Test Split\n\nMajority-class reference\n\nTF-IDF + Logistic Regression pipeline\n\nValidation performance\n\n5-fold stratified CV on all data\n\nPersisted Artifacts\n\nKey Takeaway\n\n\n\nCode\n# Imports\nfrom __future__ import annotations\n\nimport json\nfrom pathlib import Path\nimport matplotlib.pyplot as plt\n\nimport joblib\nimport pandas as pd\nfrom sklearn.model_selection import (\n    train_test_split,\n    cross_val_score,\n    StratifiedKFold,\n)\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import (\n    classification_report,\n    ConfusionMatrixDisplay,\n    accuracy_score,\n    f1_score\n)\n\n# Detect project root (folder that contains \"data/\")\nROOT_DIR = Path.cwd().parent  \n\n# Define core directories\nDATA_DIR      = ROOT_DIR / \"data\"\nPROC_DATA_DIR = DATA_DIR / \"processed\"\nMODELS_DIR    = ROOT_DIR / \"models\"\nREPORT_DIR    = ROOT_DIR / \"reports\" / \"figs_04\"\n\nMODELS_DIR.mkdir(exist_ok=True)\nREPORT_DIR.mkdir(parents=True, exist_ok=True)\n\n# Locate tweets.parquet (processed &gt; raw fallback)\nPARQUET_PATH = (\n    PROC_DATA_DIR / \"tweets.parquet\"\n    if (PROC_DATA_DIR / \"tweets.parquet\").exists()\n    else DATA_DIR / \"tweets.parquet\"\n)\nassert PARQUET_PATH.exists(), f\"Missing parquet at {PARQUET_PATH}\"\n\nprint(f\"Project root  : {ROOT_DIR}\")\nprint(f\"Parquet source : {PARQUET_PATH.relative_to(ROOT_DIR)}\")\n\n\nProject root  : C:\\Projects\\twitter-airline-analysis\nParquet source : data\\processed\\tweets.parquet"
   },
   {
     "objectID": "notebooks/04_baseline_model.html#held-out-test-set-confusion-matrix",
     "href": "notebooks/04_baseline_model.html#held-out-test-set-confusion-matrix",
-    "title": "Baseline Classical Models",
+    "title": "Baseline Model",
     "section": "Held-Out Test Set Confusion Matrix",
     "text": "Held-Out Test Set Confusion Matrix\nThe confusion matrix visually confirms the model’s strengths and areas for improvement:\n\nNegative Class: Excellent recall and precision.\nNeutral Class: Frequent confusion with both negative and positive classes indicates difficulty capturing neutrality.\n\n(Matrix figure saved as reports/figs_04/conf_matrix.png.)\n\n\nCode\n# Held‑out predictions  \ny_pred = pipe_lr.predict(X_test)   # X_test comes from the earlier split cell\n\nreport_dict = classification_report(\n    y_test, y_pred,\n    target_names=[\"negative\", \"neutral\", \"positive\"],\n    output_dict=True,\n    zero_division=0       \n)\n\n# tidy DataFrame, keep only precision/recall/f1\nmetrics_df = (\n    pd.DataFrame(report_dict)\n      .T                                   # classes as rows\n      .loc[[\"negative\", \"neutral\", \"positive\", \"weighted avg\"],  # row order\n           [\"precision\", \"recall\", \"f1-score\"]]\n      .rename(index={\"weighted avg\": \"weighted\"})                # shorter name\n      .round(3)\n)\n\ndisplay(metrics_df)\n\noverall = pd.Series({\n    \"accuracy\":      accuracy_score(y_test, y_pred),\n    \"weighted‑F1\":   f1_score(y_test, y_pred, average=\"weighted\")\n}).round(3)\n\nprint(\"\\nOverall:\", overall.to_dict())\n\ndisp = ConfusionMatrixDisplay.from_predictions(\n    y_test, y_pred,\n    labels=[\"negative\", \"neutral\", \"positive\"],\n    cmap=\"YlGnBu\", xticks_rotation=45, colorbar=True\n)\n\nplt.title(\"Held‑out test‑set confusion matrix\")\nplt.tight_layout()\nplt.savefig(REPORT_DIR / \"conf_matrix.png\", dpi=150)\nplt.show()                  \n\n\n\n\n\n\n\n\n\nprecision\nrecall\nf1-score\n\n\n\n\nnegative\n0.889\n0.840\n0.864\n\n\nneutral\n0.595\n0.686\n0.637\n\n\npositive\n0.709\n0.718\n0.713\n\n\nweighted\n0.798\n0.788\n0.792\n\n\n\n\n\n\n\n\nOverall: {'accuracy': 0.788, 'weighted‑F1': 0.792}"
   },
@@ -256,7 +256,7 @@
     "href": "notebooks/03_eda_sentiment_features.html#next-steps",
     "title": "Exploratory Data Analysis",
     "section": "Next Steps",
-    "text": "Next Steps\n\nFinalise feature list — text (TF‑IDF / embeddings) + metadata (airline, time, etc.).\n\nSelect resampling or class‑weight strategy for modelling.\n\nPrototype baseline models in 04_baseline_model.ipynb (log‑reg, SVM, BERT).\n\nFeed these findings into the project README and roadmap."
+    "text": "Next Steps\n\nFinalise feature list — text (TF‑IDF / embeddings) + metadata (airline, time, etc.).\n\nSelect resampling or class‑weight strategy for modelling.\n\nPrototype baseline models in 04_baseline_model.ipynb"
   },
   {
     "objectID": "notebooks/05_transformer.html",

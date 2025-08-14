@@ -438,7 +438,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <ul>
-<li>Character distribution is right‑skewed but bounded &lt; 180; word counts top out near 35.<br>
+<li>Character distribution is left‑skewed but bounded &lt; 180; word counts top out near 35.<br>
 </li>
 <li><strong>Padding/truncation guideline →</strong> 160 chars <em>or</em> 30 words captures &gt; 99 % of tweets.</li>
 </ul>
@@ -648,8 +648,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>        plt.axvline(<span class="dv">0</span>, color<span class="op">=</span><span class="st">"k"</span>, lw<span class="op">=</span><span class="fl">0.8</span>)</span>
 <span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
 <span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>    plt.savefig(FIG_DIR <span class="op">/</span> name, dpi<span class="op">=</span><span class="dv">150</span>)</span>
-<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
-<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a><span class="co"># %% ------------------------------------------------------------------</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display">
 <div>
@@ -831,9 +830,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
 <li><strong>Customer‑service</strong> and <strong>late‑flight</strong> issues form &gt; 50 % of negative reasons.<br>
 </li>
-<li><strong>Virgin America</strong> and <strong>Southwest</strong> exhibit more positive sentiment → airline feature likely informative.<br>
-</li>
-<li>TF‑IDF top terms validate domain‑specific vocabulary that will aid feature engineering.</li>
+<li><strong>Virgin America</strong> and <strong>Southwest</strong> exhibit more positive sentiment → airline feature likely informative.</li>
 </ul>
 <section id="next-steps" class="level2">
 <h2 class="anchored" data-anchor-id="next-steps">Next Steps</h2>
@@ -842,9 +839,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
 <li>Select resampling or class‑weight strategy for modelling.<br>
 </li>
-<li>Prototype baseline models in <strong><code>04_baseline_model.ipynb</code></strong> (log‑reg, SVM, BERT).<br>
-</li>
-<li>Feed these findings into the project README and roadmap.</li>
+<li>Prototype baseline models in <strong><code>04_baseline_model.ipynb</code></strong></li>
 </ol>
 
 
